@@ -1,102 +1,186 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- http://blog.flexexamples.com/2008/01/22/displaying-a-webcams-video-in-a-flex-videodisplay-control/ -->
 <mx:Application xmlns:mx="http://www.adobe.com/2006/mxml"
-        layout="vertical"
-        verticalAlign="middle"
-        backgroundColor="black">
+				layout="vertical"
+				verticalAlign="middle"
+				backgroundColor="black"
+				applicationComplete="init(event)">
 
-    <mx:Script>
-        <![CDATA[
-            import mx.controls.Alert;
-
+	<mx:Script>
+		<![CDATA[
+			import mx.controls.Alert;
+			import flash.display.StageDisplayState;
 			private var ns:NetStream;
 			private var ns2:NetStream;
 			private var nc:NetConnection;
 			private var camera:Camera;
-            private function videoDisplay_creationComplete():void 
-            {
-            	//camera = flash.media.Camera.getCamera("2");
-                camera = Camera.getCamera();
-                
-                
-                nc = new NetConnection();
-                nc.addEventListener(NetStatusEvent.NET_STATUS, netStatus);
-                nc.connect('rtmp://ec2-184-72-85-35.compute-1.amazonaws.com/live');  
-                ///nc.connect('rtmp://localhost:1935/live');  
-                
-                if (camera) 
-                {
-                	camera.setMode(640, 480, 15, false);
+			[Bindable]
+			private var fullWidth:Number=40;
+			[Bindable]
+			private var fullHeight:Number=40;
+			[Bindable]
+			private var normalWidth:Number=400;
+			[Bindable]
+			private var normalHeight:Number= 300;
 
-					camera.setQuality(0, 0);
-		
+			private function init(evt:Event):void
+			{
+				/* Set up full screen handler. */
+				Application.application.stage.addEventListener(FullScreenEvent.FULL_SCREEN, fullScreenHandler);
+			}
+
+			private function fullScreenHandler(evt:FullScreenEvent):void
+			{
+
+				if (evt.fullScreen)
+				{
+					/* Do something specific here if we switched to full screen mode. */
+				}
+				else
+				{
+					/* Do something specific here if we switched to normal mode. */
+				}
+			}
+
+			private function toggleFullScreen():void
+			{
+				try
+				{
+					switch (Application.application.stage.displayState)
+					{
+						case StageDisplayState.FULL_SCREEN:
+							/* If already in full screen mode, switch to normal mode. */
+							Application.application.stage.displayState=StageDisplayState.NORMAL;
+							rightStream.width=normalWidth;
+							rightStream.height=normalHeight;
+							leftStream.width=normalWidth;
+							leftStream.height=normalHeight;
+							break;
+						default:
+							/* If not in full screen mode, switch to full screen mode. */
+							Application.application.stage.displayState=StageDisplayState.FULL_SCREEN;
+							rightStream.percentHeight=fullWidth;
+							rightStream.percentWidth=fullHeight;
+							leftStream.percentHeight=fullWidth;
+							leftStream.percentWidth=fullHeight;
+							
+							break;
+					}
+					leftStream.validateNow();
+					rightStream.validateNow();
+				}
+				catch (err:SecurityError)
+				{
+					// ignore
+				}
+			}
+
+			private function videoDisplay_creationComplete():void
+			{
+				//camera = flash.media.Camera.getCamera("2");
+				camera=Camera.getCamera();
+
+
+				nc=new NetConnection();
+				nc.addEventListener(NetStatusEvent.NET_STATUS, netStatus);
+				nc.connect('rtmp://rswcromero-2.local/live');
+				///nc.connect('rtmp://localhost:1935/live');  
+
+				if (camera)
+				{
+					//camera.setMode(400, 300, 15, false);
+					camera.setMode(300, 240, 30)
+					camera.setQuality(0, 90);
+
 					camera.setKeyFrameInterval(24);
-		
+
 					//microphone.rate = 11;
-		
+
 					//microphone.setSilenceLevel(0);
-                	
-                    videoDisplay.attachCamera(camera);
-                    
-                } 
-                else 
-                {
-                    Alert.show("You don't seem to have a camera.");
-                }
-                
-                
-            }
-            
-            private function netStatus(event:NetStatusEvent):void
-            {
-            	switch (event.info.code)
-            	{
-            		case "NetConnection.Connect.Success":
-            		{
-            			ns = new NetStream(nc);
-            			ns.attachCamera(camera);
-            			ns.attachAudio(Microphone.getMicrophone());
-            			//ns.addEventListener(NetStatusEvent.NET_STATUS, onPublish);
-            			ns.bufferTime = 0;
-            			ns.publish("myStream.sdp", "live");
-            			
-						//ns.attachCamera(camera);
 
-						//ns.attachAudio(microphone);
-						// add custom metadata to the stream
-		/* 
-						var metaData:Object = new Object();
-		
-						metaData["description"] = "Chat using VideoChat example."
-		
-						nsPublish.send("@setDataFrame", "onMetaData", metaData); */
-
-		
-
-				
-
-				
+					videoDisplay.attachCamera(camera);
+					ExternalInterface.call("addToQueue");
+				}
+				else
+				{
+					//Alert.show("You don't seem to have a camera.");
+				}
 
 
-            		}
-            	}
-            }
-            
-            
-            
-            
-        ]]>
-    </mx:Script>
-	<mx:HBox width="100%" height="100%" verticalAlign="middle" horizontalAlign="center">
-		 
-		 <mx:VideoDisplay id="videoDisplay" 
-            creationComplete="videoDisplay_creationComplete();"
-            width="640"
-            height="480" />
-            
-            <mx:Spacer width="50" />
-    <mx:VideoDisplay width="640" height="480" live="true" autoPlay="true" source="rtmp://ec2-184-72-85-35.compute-1.amazonaws.com/live/myStream.sdp" />
-    
-	</mx:HBox>
-   
+			}
+
+			private function netStatus(event:NetStatusEvent):void
+			{
+				switch (event.info.code)
+				{
+					case "NetConnection.Connect.Success":
+					{
+						ns=new NetStream(nc);
+						ns.attachCamera(camera);
+						ns.attachAudio(Microphone.getMicrophone());
+						//ns.addEventListener(NetStatusEvent.NET_STATUS, onPublish);
+						ns.bufferTime=0;
+						ns.publish("myStream2.sdp", "live");
+
+							//ns.attachCamera(camera);
+
+							//ns.attachAudio(microphone);
+							// add custom metadata to the stream
+						/*
+										var metaData:Object = new Object();
+
+										metaData["description"] = "Chat using VideoChat example."
+
+										nsPublish.send("@setDataFrame", "onMetaData", metaData); */
+
+
+
+
+
+
+
+
+					}
+				}
+			}
+		]]>
+	</mx:Script>
+	<mx:VBox id="mainContainer"
+			 width="100%"
+			 height="100%"
+			 horizontalCenter="0"
+			 verticalAlign="middle"
+			 horizontalAlign="center">
+
+
+		<mx:HBox width="100%"
+				 height="100%"
+				 horizontalCenter="0"
+				 verticalAlign="middle"
+				 horizontalAlign="center">
+
+			<mx:VideoDisplay id="videoDisplay"
+							 includeInLayout="false"
+							 visible="false"
+							 creationComplete="videoDisplay_creationComplete();"
+							 width="{normalWidth}"
+							 height="{normalHeight}"/>
+			<mx:VideoDisplay id="leftStream"
+							 width="{normalWidth}"
+							 height="{normalHeight}"
+							 live="true"
+							 autoPlay="true"
+							 source="rtmp://rswcromero-2.local/live/myStream2.sdp"/>
+
+			<mx:Spacer width="20"/>
+			<mx:VideoDisplay id="rightStream"
+							 width="{normalWidth}"
+							 height="{normalHeight}"
+							 live="true"
+							 autoPlay="true"
+							 source="rtmp://rswcromero-2.local/live/myStream3.sdp"/>
+
+		</mx:HBox>
+		<mx:Button label="[]" click="toggleFullScreen()"/>
+	</mx:VBox>
 </mx:Application>
