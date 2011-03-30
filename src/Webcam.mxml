@@ -15,26 +15,29 @@
 			private var nc:NetConnection;
 			private var camera:Camera;
 			[Bindable]
-			private var fullWidth:Number=40;
+			private var fullWidth:Number=100;
 			[Bindable]
-			private var fullHeight:Number=40;
+			private var fullHeight:Number=100;
 			[Bindable]
 			private var normalWidth:Number=400;
 			[Bindable]
-			private var normalHeight:Number= 300;
+			private var normalHeight:Number=300;
+
+			[Bindable]
+			private var publishLocation:String;
 
 			private function init(evt:Event):void
 			{
 				/* Set up full screen handler. */
 				Application.application.stage.addEventListener(FullScreenEvent.FULL_SCREEN, fullScreenHandler);
 				camera=Camera.getCamera();
-				if (camera) 
+				if (camera)
 				{
 					ExternalInterface.call("addToQueue");
 					ExternalInterface.addCallback("startStream", startVideo);
 				}
-				
-				
+
+
 			}
 
 			private function fullScreenHandler(evt:FullScreenEvent):void
@@ -71,7 +74,7 @@
 							rightStream.percentWidth=fullHeight;
 							leftStream.percentHeight=fullWidth;
 							leftStream.percentWidth=fullHeight;
-							
+
 							break;
 					}
 					leftStream.validateNow();
@@ -83,35 +86,40 @@
 				}
 			}
 
-			public function startVideo():void
+			public function startVideo(stream:String):void
 			{
-				//camera = flash.media.Camera.getCamera("2");
-				camera=Camera.getCamera();
-
-
-				nc=new NetConnection();
-				nc.addEventListener(NetStatusEvent.NET_STATUS, netStatus);
-				nc.connect('rtmp://rswcromero-2.local/live');
-				///nc.connect('rtmp://localhost:1935/live');  
-
-				if (camera)
+				if (stream == "stream1" || stream == "stream2")
 				{
-					//camera.setMode(400, 300, 15, false);
-					camera.setMode(300, 240, 30)
-					camera.setQuality(0, 90);
+					publishLocation=stream + ".sdp";
+					//camera = flash.media.Camera.getCamera("2");
+					camera=Camera.getCamera();
 
-					camera.setKeyFrameInterval(24);
 
-					//microphone.rate = 11;
+					nc=new NetConnection();
+					nc.addEventListener(NetStatusEvent.NET_STATUS, netStatus);
+					nc.connect('rtmp://rswcromero-2.local/live');
+					///nc.connect('rtmp://localhost:1935/live');  
 
-					//microphone.setSilenceLevel(0);
+					if (camera)
+					{
+						//camera.setMode(400, 300, 15, false);
+						camera.setMode(300, 240, 30)
+						camera.setQuality(0, 90);
 
-					videoDisplay.attachCamera(camera);
-					
-				}
-				else
-				{
-					//Alert.show("You don't seem to have a camera.");
+						camera.setKeyFrameInterval(24);
+
+						//microphone.rate = 11;
+
+						//microphone.setSilenceLevel(0);
+
+						videoDisplay.attachCamera(camera);
+
+					}
+					else
+					{
+						//Alert.show("You don't seem to have a camera.");
+					}
+
 				}
 
 
@@ -128,7 +136,7 @@
 						ns.attachAudio(Microphone.getMicrophone());
 						//ns.addEventListener(NetStatusEvent.NET_STATUS, onPublish);
 						ns.bufferTime=0;
-						ns.publish("myStream2.sdp", "live");
+						ns.publish(publishLocation, "live");
 
 							//ns.attachCamera(camera);
 
@@ -151,8 +159,32 @@
 					}
 				}
 			}
+
+			private function vote(stream:Number):void
+			{
+				ExternalInterface.call("vote(" + stream + ")");
+			}
+
+			private function flag(stream:Number):void
+			{
+				ExternalInterface.call("flag(" + stream + ")");
+				if (stream == 1)
+				{
+					//TODO: do something here to leftStream
+				}
+				else if (stream == 2)
+				{
+					//TODO: do something here to rightStream
+				}
+			}
 		]]>
 	</mx:Script>
+	<!-- this is the hidden local cam -->
+	<mx:VideoDisplay id="videoDisplay"
+					 includeInLayout="false"
+					 visible="false"
+					 width="{normalWidth}"
+					 height="{normalHeight}"/>
 	<mx:VBox id="mainContainer"
 			 width="100%"
 			 height="100%"
@@ -167,27 +199,53 @@
 				 verticalAlign="middle"
 				 horizontalAlign="center">
 
-			<mx:VideoDisplay id="videoDisplay"
-							 includeInLayout="false"
-							 visible="false"
-							 width="{normalWidth}"
-							 height="{normalHeight}"/>
-			<mx:VideoDisplay id="leftStream"
-							 width="{normalWidth}"
-							 height="{normalHeight}"
-							 live="true"
-							 autoPlay="true"
-							 source="rtmp://rswcromero-2.local/live/myStream2.sdp"/>
+			<mx:VBox id="leftContainer"
+					 width="50%"
+					 height="100%"
+					 horizontalAlign="center"
+					 horizontalCenter="0"
+					 verticalAlign="middle">
+				<mx:VideoDisplay id="leftStream"
+								 width="{normalWidth}"
+								 height="{normalHeight}"
+								 live="true"
+								 autoPlay="true"
+								 source="rtmp://rswcromero-2.local/live/stream1.sdp"/>
+				<mx:Button label="Vote Up!"
+						   toolTip="Vote Up!"
+						   click="vote(1)"
+						   icon="@Embed(source='../assets/up.png')"/>
+				<mx:Button label="Flag Inappropriate"
+						   toolTip="Flag Inappropriate"
+						   click="flag(1)"
+						   icon="@Embed(source='../assets/flag.png')"/>
+			</mx:VBox>
+
 
 			<mx:Spacer width="20"/>
-			<mx:VideoDisplay id="rightStream"
-							 width="{normalWidth}"
-							 height="{normalHeight}"
-							 live="true"
-							 autoPlay="true"
-							 source="rtmp://rswcromero-2.local/live/myStream3.sdp"/>
-
+			<mx:VBox id="rightContainer"
+					 width="50%"
+					 height="100%"
+					 horizontalAlign="center"
+					 horizontalCenter="0"
+					 verticalAlign="middle">
+				<mx:VideoDisplay id="rightStream"
+								 width="{normalWidth}"
+								 height="{normalHeight}"
+								 live="true"
+								 autoPlay="true"
+								 source="rtmp://rswcromero-2.local/live/stream2.sdp"/>
+				<mx:Button label="Vote Up!"
+						   toolTip="Vote Up!"
+						   click="vote(2)"
+						   icon="@Embed(source='../assets/up.png')"/>
+				<mx:Button label="Flag Inappropriate"
+						   toolTip="Flag Inappropriate"
+						   click="flag(2)"
+						   icon="@Embed(source='../assets/flag.png')"/>
+			</mx:VBox>
 		</mx:HBox>
-		<mx:Button label="[]" click="toggleFullScreen()"/>
+		<mx:Button label="[]"
+				   click="toggleFullScreen()"/>
 	</mx:VBox>
 </mx:Application>
