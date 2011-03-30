@@ -27,6 +27,14 @@
 			{
 				/* Set up full screen handler. */
 				Application.application.stage.addEventListener(FullScreenEvent.FULL_SCREEN, fullScreenHandler);
+				camera=Camera.getCamera();
+				if (camera) 
+				{
+					ExternalInterface.call("addToQueue");
+					ExternalInterface.addCallback("startStream", startVideo);
+				}
+				
+				
 			}
 
 			private function fullScreenHandler(evt:FullScreenEvent):void
@@ -75,7 +83,7 @@
 				}
 			}
 
-			private function videoDisplay_creationComplete():void
+			public function startVideo():void
 			{
 				//camera = flash.media.Camera.getCamera("2");
 				camera=Camera.getCamera();
@@ -99,7 +107,7 @@
 					//microphone.setSilenceLevel(0);
 
 					videoDisplay.attachCamera(camera);
-					ExternalInterface.call("addToQueue");
+					
 				}
 				else
 				{
@@ -162,7 +170,6 @@
 			<mx:VideoDisplay id="videoDisplay"
 							 includeInLayout="false"
 							 visible="false"
-							 creationComplete="videoDisplay_creationComplete();"
 							 width="{normalWidth}"
 							 height="{normalHeight}"/>
 			<mx:VideoDisplay id="leftStream"
