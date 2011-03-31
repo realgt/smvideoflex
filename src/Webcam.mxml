@@ -26,6 +26,9 @@
 			[Bindable]
 			private var publishLocation:String;
 
+			[Bindable]
+			private var serverUrl:String="rtmp://rswcromero-2.local/live";
+
 			private function init(evt:Event):void
 			{
 				/* Set up full screen handler. */
@@ -37,7 +40,16 @@
 					ExternalInterface.addCallback("startStream", startVideo);
 				}
 
+				ExternalInterface.addCallback("setServer", setServer);
 
+
+			}
+
+			private function setServer(url:String):void
+			{
+				serverUrl=url;
+				leftStream.source=serverUrl + "/stream1.sdp";
+				rightStream.source=serverUrl + "/stream2.sdp";
 			}
 
 			private function fullScreenHandler(evt:FullScreenEvent):void
@@ -97,7 +109,7 @@
 
 					nc=new NetConnection();
 					nc.addEventListener(NetStatusEvent.NET_STATUS, netStatus);
-					nc.connect('rtmp://rswcromero-2.local/live');
+					nc.connect(serverUrl);
 					///nc.connect('rtmp://localhost:1935/live');  
 
 					if (camera)
@@ -210,15 +222,21 @@
 								 height="{normalHeight}"
 								 live="true"
 								 autoPlay="true"
-								 source="rtmp://rswcromero-2.local/live/stream1.sdp"/>
-				<mx:Button label="Vote Up!"
-						   toolTip="Vote Up!"
-						   click="vote(1)"
-						   icon="@Embed(source='../assets/up.png')"/>
-				<mx:Button label="Flag Inappropriate"
-						   toolTip="Flag Inappropriate"
-						   click="flag(1)"
-						   icon="@Embed(source='../assets/flag.png')"/>
+								 source="{serverUrl + '/stream1.sdp'}"/>
+				<mx:HBox width="100%"
+						 horizontalAlign="right"
+						 horizontalGap="0"
+						 id="leftControls">
+					<mx:Button label=""
+							   toolTip="Vote Up!"
+							   click="vote(1)"
+							   icon="@Embed(source='../assets/up.png')"/>
+					<mx:Button label=""
+							   toolTip="Flag Inappropriate"
+							   click="flag(1)"
+							   icon="@Embed(source='../assets/flag.png')"/>
+				</mx:HBox>
+
 			</mx:VBox>
 
 
@@ -226,7 +244,7 @@
 			<mx:VBox id="rightContainer"
 					 width="50%"
 					 height="100%"
-					 horizontalAlign="center"
+					 horizontalAlign="right"
 					 horizontalCenter="0"
 					 verticalAlign="middle">
 				<mx:VideoDisplay id="rightStream"
@@ -234,15 +252,21 @@
 								 height="{normalHeight}"
 								 live="true"
 								 autoPlay="true"
-								 source="rtmp://rswcromero-2.local/live/stream2.sdp"/>
-				<mx:Button label="Vote Up!"
-						   toolTip="Vote Up!"
-						   click="vote(2)"
-						   icon="@Embed(source='../assets/up.png')"/>
-				<mx:Button label="Flag Inappropriate"
-						   toolTip="Flag Inappropriate"
-						   click="flag(2)"
-						   icon="@Embed(source='../assets/flag.png')"/>
+								 source="{serverUrl + '/stream2.sdp'}"/>
+				<mx:HBox width="100%"
+						 horizontalAlign="center"
+						 horizontalGap="0"
+						 id="rightControls">
+					<mx:Button label=""
+							   toolTip="Vote Up!"
+							   click="vote(2)"
+							   icon="@Embed(source='../assets/up.png')"/>
+					<mx:Button label=""
+							   toolTip="Flag Inappropriate"
+							   click="flag(2)"
+							   icon="@Embed(source='../assets/flag.png')"/>
+				</mx:HBox>
+
 			</mx:VBox>
 		</mx:HBox>
 		<mx:Button label="[]"
