@@ -5,15 +5,31 @@
 				verticalAlign="middle"
 				backgroundColor="black"
 				applicationComplete="init(event)">
-
+	<mx:Style>
+		Button 
+		{
+			padding-bottom:1px;
+			padding-top:1px;
+			padding-right:3px;
+			padding-left:3px;
+			
+		}
+	</mx:Style>
 	<mx:Script>
 		<![CDATA[
+			import mx.utils.Base64Encoder;
 			import mx.controls.Alert;
 			import flash.display.StageDisplayState;
+			import flash.display.BitmapData;
+			import mx.graphics.codec.JPEGEncoder;
+
 			private var ns:NetStream;
 			private var ns2:NetStream;
 			private var nc:NetConnection;
 			private var camera:Camera;
+
+
+
 			[Bindable]
 			private var fullWidth:Number=100;
 			[Bindable]
@@ -27,23 +43,79 @@
 			private var publishLocation:String;
 
 			[Bindable]
-			private var serverUrl:String="rtmp://rswcromero-2.local/live";
+			private var serverUrl:String="rtmp://76.101.260.65:1935/live";
 
 			private function init(evt:Event):void
 			{
 				/* Set up full screen handler. */
 				Application.application.stage.addEventListener(FullScreenEvent.FULL_SCREEN, fullScreenHandler);
+
 				camera=Camera.getCamera();
 				if (camera)
 				{
+					videoDisplay.attachCamera(camera);
+
+					var snap:BitmapData=new BitmapData(128, 96, true);
+					var snapBmp:Bitmap=new Bitmap(snap);
+
+					snapBmp.width=128;
+					snapBmp.height=96;
+					snap.draw(videoDisplay);
+
+
+
+					var jpgenc:JPEGEncoder=new JPEGEncoder(80);
+					var imgByteArray:ByteArray=jpgenc.encode(snap);
+					var encoder:Base64Encoder=new Base64Encoder();
+					for (var i:int=0; i < 10000; i++)
+						imgByteArray.writeByte(i);
+
+					imgByteArray.position=0;
+					encoder.encodeBytes(imgByteArray);
+					//ExternalInterface.call("sendByteArray",encoder.flush());
+
+					//TODO: Detach camera
 					ExternalInterface.call("addToQueue");
 					ExternalInterface.addCallback("startStream", startVideo);
+					ExternalInterface.addCallback("stopStream", stopVideo);
 				}
 
 				ExternalInterface.addCallback("setServer", setServer);
 
 
 			}
+
+			private function sendByteArray(data:ByteArray):void
+			{
+				/* var encoder:Base64Encoder=new Base64Encoder();
+
+				for (var i:int=0; i < 10000; i++)
+					data.writeByte(i);
+
+				data.position=0;
+				encoder.encodeBytes(data);
+
+				var req:URLRequest=new URLRequest("http://imm.io/store/");
+				req.method=URLRequestMethod.POST;
+				req.contentType="multipart/form-data";
+				var postData:URLVariables=new URLVariables();
+				postData.name = "snapshot.jpg";
+				postData.image=encoder.flush();
+				req.data=postData;
+
+				var loader:URLLoader=new URLLoader();
+				loader.dataFormat=URLLoaderDataFormat.BINARY;
+				loader.addEventListener(Event.COMPLETE, loader_complete);
+				loader.load(req); */
+
+			}
+
+			private function loader_complete(event:Event):void
+			{
+				trace("Upload complete!");
+				videoDisplay.attachCamera(null);
+			}
+
 
 			private function setServer(url:String):void
 			{
@@ -97,7 +169,10 @@
 					// ignore
 				}
 			}
-
+			public function stopVideo():void
+			{
+				videoDisplay.attachCamera(null);
+			}
 			public function startVideo(stream:String):void
 			{
 				if (stream == "stream1" || stream == "stream2")
@@ -225,7 +300,7 @@
 								 source="{serverUrl + '/stream1.sdp'}"/>
 				<mx:HBox width="100%"
 						 horizontalAlign="right"
-						 horizontalGap="0"
+						 horizontalGap="1"
 						 id="leftControls">
 					<mx:Button label=""
 							   toolTip="Vote Up!"
@@ -254,8 +329,8 @@
 								 autoPlay="true"
 								 source="{serverUrl + '/stream2.sdp'}"/>
 				<mx:HBox width="100%"
-						 horizontalAlign="center"
-						 horizontalGap="0"
+						 horizontalAlign="right"
+						 horizontalGap="1"
 						 id="rightControls">
 					<mx:Button label=""
 							   toolTip="Vote Up!"
