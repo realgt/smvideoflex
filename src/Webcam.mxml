@@ -43,7 +43,7 @@
 			private var publishLocation:String;
 
 			[Bindable]
-			private var serverUrl:String="rtmp://76.101.260.65:1935/live";
+			private var serverUrl:String="rtmp://71.2.230.136:1935/live";
 
 			private function init(evt:Event):void
 			{
@@ -53,7 +53,7 @@
 				camera=Camera.getCamera();
 				if (camera)
 				{
-					videoDisplay.attachCamera(camera);
+					/* videoDisplay.attachCamera(camera);
 
 					var snap:BitmapData=new BitmapData(128, 96, true);
 					var snapBmp:Bitmap=new Bitmap(snap);
@@ -71,7 +71,7 @@
 						imgByteArray.writeByte(i);
 
 					imgByteArray.position=0;
-					encoder.encodeBytes(imgByteArray);
+					encoder.encodeBytes(imgByteArray); */
 					//ExternalInterface.call("sendByteArray",encoder.flush());
 
 					//TODO: Detach camera
@@ -172,9 +172,11 @@
 			public function stopVideo():void
 			{
 				videoDisplay.attachCamera(null);
+				//Alert.show("stopStream!");
 			}
 			public function startVideo(stream:String):void
 			{
+				//Alert.show("startStream!");
 				if (stream == "stream1" || stream == "stream2")
 				{
 					publishLocation=stream + ".sdp";
