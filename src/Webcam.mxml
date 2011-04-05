@@ -43,7 +43,7 @@
 			private var publishLocation:String;
 
 			[Bindable]
-			private var serverUrl:String="rtmp://71.2.230.136:1935/live";
+			private var serverUrl:String="rtmp://rswfrodriguez.local:1935/live";
 
 			private function init(evt:Event):void
 			{
@@ -172,6 +172,7 @@
 			public function stopVideo():void
 			{
 				videoDisplay.attachCamera(null);
+				ns.close();
 				//Alert.show("stopStream!");
 			}
 			public function startVideo(stream:String):void
@@ -295,6 +296,7 @@
 					 horizontalCenter="0"
 					 verticalAlign="middle">
 				<mx:VideoDisplay id="leftStream"
+					rollOverEffect=""
 								 width="{normalWidth}"
 								 height="{normalHeight}"
 								 live="true"
