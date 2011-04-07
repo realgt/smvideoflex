@@ -138,7 +138,7 @@
 
 			private function loader_complete(event:Event):void
 			{
-				trace("Upload complete!");
+				//trace"Upload complete!");
 				//videoDisplay.attachCamera(null);
 			}
 
@@ -200,14 +200,14 @@
 			{
 				//video1.attachCamera(null);
 				//playStream1.close();
-				Alert.show("stopStream!");
+				//Alert.show("stopStream!");
 				isStreaming=false;
 			}
 
 			public function startVideo(stream:String):void
 			{
-				trace("startVideo with: " + stream);
-				Alert.show("startStream!");
+				//trace"startVideo with: " + stream);
+				//Alert.show("startStream!");
 				isStreaming=true;
 				if (stream == "stream1" || stream == "stream2")
 				{
@@ -228,7 +228,7 @@
 							//playStream1.bufferTime=0;
 							//playStream1.publish(publishLocation, "live");
 							playStream1.attachCamera(camera);
-							trace("playStream1.attachCamera(camera)");
+							//trace"playStream1.attachCamera(camera)");
 							playStream1.publish("stream1");
 							video1.attachCamera(camera);
 
@@ -248,7 +248,7 @@
 										}
 										else
 										{
-											//Alert.show("You don't seem to have a camera.");
+											////Alert.show("You don't seem to have a camera.");
 										} */
 
 				}
@@ -266,7 +266,7 @@
 				play2NetConnection=new NetConnection();
 				play2NetConnection.addEventListener(NetStatusEvent.NET_STATUS, netStatus);
 				play2NetConnection.connect(SERVER + DEVKEY);
-				trace("private function connect():void");
+				//trace"private function connect():void");
 			}
 
 			private function setupPlayStream():void
@@ -284,12 +284,12 @@
 				{
 				}
 
-				trace("private function setupPlayStream():void");
+				//trace"private function setupPlayStream():void");
 			}
 
 			private function setupPublishStream():void
 			{
-				Alert.show("setupPublishStream()");
+				//Alert.show("setupPublishStream()");
 				var groupspec:GroupSpecifier=new GroupSpecifier(GROUP_SPEC);
 				groupspec.serverChannelEnabled=true;
 				groupspec.multicastEnabled=true;
@@ -297,7 +297,7 @@
 				publishStream=new NetStream(publishNetConnection, groupspec.groupspecWithAuthorizations());
 				publishStream.addEventListener(NetStatusEvent.NET_STATUS, publishNetStatus);
 
-				trace("private function setupPublishStream():void");
+				//trace"private function setupPublishStream():void");
 			}
 
 			private function setupPlayStream2():void
@@ -309,13 +309,13 @@
 
 				playStream2=new NetStream(play2NetConnection, groupspec2.groupspecWithAuthorizations());
 				playStream2.addEventListener(NetStatusEvent.NET_STATUS, netStatus);
-				trace("private function setupPlayStream2():void");
+				//trace"private function setupPlayStream2():void");
 			}
 
 			private function onNetConnectionNetStatus(event:NetStatusEvent):void
 			{
-				trace("private function onNetConnectionNetStatus(event:NetStatusEvent):void");
-				trace(event.info.code);
+				//trace"private function onNetConnectionNetStatus(event:NetStatusEvent):void");
+				//traceevent.info.code);
 				switch (event.info.code)
 				{
 					case "NetStream.Connect.Success":
@@ -330,8 +330,8 @@
 				{
 
 
-					trace("private function netStatus(event:NetStatusEvent):void");
-					trace(event.info.code);
+					//trace"private function netStatus(event:NetStatusEvent):void");
+					//traceevent.info.code);
 					switch (event.info.code)
 					{
 						case "NetConnection.Connect.Success":
@@ -343,7 +343,7 @@
 						case "NetStream.Connect.Success":
 							if (isStreaming)
 							{
-								Alert.show("publishStream.play(" + publishLocation + ");");
+								//Alert.show("publishStream.play(" + publishLocation + ");");
 								camera=Camera.getCamera()
 								//Setup camera for best possible quality
 								camera.setMode(300, 240, 30)
@@ -367,8 +367,8 @@
 
 			private function netStatus(event:NetStatusEvent):void
 			{
-				trace("private function netStatus(event:NetStatusEvent):void");
-				trace(event.info.code);
+				//trace"private function netStatus(event:NetStatusEvent):void");
+				//traceevent.info.code);
 				switch (event.info.code)
 				{
 					case "NetConnection.Connect.Success":
@@ -390,8 +390,8 @@
 
 						break;
 					default:
-						//Alert.show(event.info.code);
-						//Alert.show(event.target.toString());
+						////Alert.show(event.info.code);
+						////Alert.show(event.target.toString());
 						break;
 
 				}
