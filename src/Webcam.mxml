@@ -17,17 +17,23 @@
 	</mx:Style>
 	<mx:Script>
 		<![CDATA[
+			import mx.core.UIComponent;
 			import mx.utils.Base64Encoder;
 			import mx.controls.Alert;
 			import flash.display.StageDisplayState;
 			import flash.display.BitmapData;
 			import mx.graphics.codec.JPEGEncoder;
+			import spark.components.Group;
 
-			private var ns:NetStream;
-			private var ns2:NetStream;
-			private var nc:NetConnection;
+			private var playStream1:NetStream;
+			private var publishStream:NetStream;
+			private var playStream2:NetStream;
+			private var playNetConnection:NetConnection;
+			private var play2NetConnection:NetConnection;
+			private var publishNetConnection:NetConnection;
 			private var camera:Camera;
-
+			private var video1:Video;
+			private var video2:Video;
 
 
 			[Bindable]
@@ -43,13 +49,33 @@
 			private var publishLocation:String;
 
 			[Bindable]
-			private var serverUrl:String="rtmp://rswfrodriguez.local:1935/live";
+			private var serverUrl:String="rtmp://rswcromero-2.local:1935/live";
+
+			private const SERVER:String="rtmfp://p2p.rtmfp.net/";
+			private const DEVKEY:String="2a1b4488487e674b76882706-88f8fb4c1e15";
+			private const GROUP_SPEC:String="sharkmob/multicast1";
+
+			private var isStreaming:Boolean=false;
 
 			private function init(evt:Event):void
 			{
 				/* Set up full screen handler. */
 				Application.application.stage.addEventListener(FullScreenEvent.FULL_SCREEN, fullScreenHandler);
+				video1=new Video(normalWidth, normalHeight);
+				video1.x=-200;
+				video1.y=-400;
+				var uic1:UIComponent=new UIComponent();
+				uic1.addChildAt(video1, 0);
+				leftContainer.addElement(uic1);
 
+				video2=new Video(normalWidth, normalHeight);
+				video2.x=-400;
+				video2.y=-400;
+				var uic2:UIComponent=new UIComponent();
+				uic2.addChildAt(video2, 0);
+				rightContainer.addElement(uic2);
+
+				connect();
 				camera=Camera.getCamera();
 				if (camera)
 				{
@@ -87,41 +113,41 @@
 
 			private function sendByteArray(data:ByteArray):void
 			{
-				/* var encoder:Base64Encoder=new Base64Encoder();
+			/* var encoder:Base64Encoder=new Base64Encoder();
 
-				for (var i:int=0; i < 10000; i++)
-					data.writeByte(i);
+			for (var i:int=0; i < 10000; i++)
+				data.writeByte(i);
 
-				data.position=0;
-				encoder.encodeBytes(data);
+			data.position=0;
+			encoder.encodeBytes(data);
 
-				var req:URLRequest=new URLRequest("http://imm.io/store/");
-				req.method=URLRequestMethod.POST;
-				req.contentType="multipart/form-data";
-				var postData:URLVariables=new URLVariables();
-				postData.name = "snapshot.jpg";
-				postData.image=encoder.flush();
-				req.data=postData;
+			var req:URLRequest=new URLRequest("http://imm.io/store/");
+			req.method=URLRequestMethod.POST;
+			req.contentType="multipart/form-data";
+			var postData:URLVariables=new URLVariables();
+			postData.name = "snapshot.jpg";
+			postData.image=encoder.flush();
+			req.data=postData;
 
-				var loader:URLLoader=new URLLoader();
-				loader.dataFormat=URLLoaderDataFormat.BINARY;
-				loader.addEventListener(Event.COMPLETE, loader_complete);
-				loader.load(req); */
+			var loader:URLLoader=new URLLoader();
+			loader.dataFormat=URLLoaderDataFormat.BINARY;
+			loader.addEventListener(Event.COMPLETE, loader_complete);
+			loader.load(req); */
 
 			}
 
 			private function loader_complete(event:Event):void
 			{
 				trace("Upload complete!");
-				videoDisplay.attachCamera(null);
+				//videoDisplay.attachCamera(null);
 			}
 
 
 			private function setServer(url:String):void
 			{
 				serverUrl=url;
-				leftStream.source=serverUrl + "/stream1.sdp";
-				rightStream.source=serverUrl + "/stream2.sdp";
+			/* leftStream.source=serverUrl + "/stream1.sdp";
+			rightStream.source=serverUrl + "/stream2.sdp"; */
 			}
 
 			private function fullScreenHandler(evt:FullScreenEvent):void
@@ -146,107 +172,228 @@
 						case StageDisplayState.FULL_SCREEN:
 							/* If already in full screen mode, switch to normal mode. */
 							Application.application.stage.displayState=StageDisplayState.NORMAL;
-							rightStream.width=normalWidth;
-							rightStream.height=normalHeight;
-							leftStream.width=normalWidth;
-							leftStream.height=normalHeight;
+							/* video2.width=normalWidth;
+							video2.height=normalHeight;
+							video1.width=normalWidth;
+							video1.height=normalHeight; */
 							break;
 						default:
 							/* If not in full screen mode, switch to full screen mode. */
 							Application.application.stage.displayState=StageDisplayState.FULL_SCREEN;
-							rightStream.percentHeight=fullWidth;
-							rightStream.percentWidth=fullHeight;
-							leftStream.percentHeight=fullWidth;
-							leftStream.percentWidth=fullHeight;
+							/* video2.percentHeight=fullWidth;
+							video2.percentWidth=fullHeight;
+							video1.percentHeight=fullWidth;
+							video1.percentWidth=fullHeight; */
 
 							break;
 					}
-					leftStream.validateNow();
-					rightStream.validateNow();
+					/* video2.validateNow();
+					video1.validateNow(); */
 				}
 				catch (err:SecurityError)
 				{
 					// ignore
 				}
 			}
+
 			public function stopVideo():void
 			{
-				videoDisplay.attachCamera(null);
-				ns.close();
-				//Alert.show("stopStream!");
+				//video1.attachCamera(null);
+				//playStream1.close();
+				Alert.show("stopStream!");
+				isStreaming=false;
 			}
+
 			public function startVideo(stream:String):void
 			{
-				//Alert.show("startStream!");
+				trace("startVideo with: " + stream);
+				Alert.show("startStream!");
+				isStreaming=true;
 				if (stream == "stream1" || stream == "stream2")
 				{
-					publishLocation=stream + ".sdp";
+					publishLocation=stream;
 					//camera = flash.media.Camera.getCamera("2");
-					camera=Camera.getCamera();
+					/* camera=Camera.getCamera();
+
+						if (camera)
+						{
+							camera.setMode(300, 240, 30)
+							camera.setQuality(0, 90);
+
+							camera.setKeyFrameInterval(24);
+
+							//ns=new NetStream(nc);
+							//playStream1.attachAudio(Microphone.getMicrophone());
+							//playStream1.addEventListener(NetStatusEvent.NET_STATUS, onPublish);
+							//playStream1.bufferTime=0;
+							//playStream1.publish(publishLocation, "live");
+							playStream1.attachCamera(camera);
+							trace("playStream1.attachCamera(camera)");
+							playStream1.publish("stream1");
+							video1.attachCamera(camera);
+
+						} */
+
+					publishNetConnection=new NetConnection();
+					publishNetConnection.addEventListener(NetStatusEvent.NET_STATUS, publishNetStatus);
+					publishNetConnection.connect(SERVER + DEVKEY);
+						//setupPublishStream();
+						///nc.connect('rtmp://localhost:1935/live');  
+					/*
+										if (camera)
+										{
+											//camera.setMode(400, 300, 15, false);
 
 
-					nc=new NetConnection();
-					nc.addEventListener(NetStatusEvent.NET_STATUS, netStatus);
-					nc.connect(serverUrl);
-					///nc.connect('rtmp://localhost:1935/live');  
-
-					if (camera)
-					{
-						//camera.setMode(400, 300, 15, false);
-						camera.setMode(300, 240, 30)
-						camera.setQuality(0, 90);
-
-						camera.setKeyFrameInterval(24);
-
-						//microphone.rate = 11;
-
-						//microphone.setSilenceLevel(0);
-
-						videoDisplay.attachCamera(camera);
-
-					}
-					else
-					{
-						//Alert.show("You don't seem to have a camera.");
-					}
+										}
+										else
+										{
+											//Alert.show("You don't seem to have a camera.");
+										} */
 
 				}
 
 
 			}
 
+			private function connect():void
+			{
+
+				playNetConnection=new NetConnection();
+				playNetConnection.addEventListener(NetStatusEvent.NET_STATUS, netStatus);
+				playNetConnection.connect(SERVER + DEVKEY);
+
+				play2NetConnection=new NetConnection();
+				play2NetConnection.addEventListener(NetStatusEvent.NET_STATUS, netStatus);
+				play2NetConnection.connect(SERVER + DEVKEY);
+				trace("private function connect():void");
+			}
+
+			private function setupPlayStream():void
+			{
+				try
+				{
+					var groupspec:GroupSpecifier=new GroupSpecifier(GROUP_SPEC);
+					groupspec.serverChannelEnabled=true;
+					groupspec.multicastEnabled=true;
+
+					playStream1=new NetStream(playNetConnection, groupspec.groupspecWithAuthorizations());
+					playStream1.addEventListener(NetStatusEvent.NET_STATUS, netStatus);
+				}
+				catch (e:Error)
+				{
+				}
+
+				trace("private function setupPlayStream():void");
+			}
+
+			private function setupPublishStream():void
+			{
+				Alert.show("setupPublishStream()");
+				var groupspec:GroupSpecifier=new GroupSpecifier(GROUP_SPEC);
+				groupspec.serverChannelEnabled=true;
+				groupspec.multicastEnabled=true;
+
+				publishStream=new NetStream(publishNetConnection, groupspec.groupspecWithAuthorizations());
+				publishStream.addEventListener(NetStatusEvent.NET_STATUS, publishNetStatus);
+
+				trace("private function setupPublishStream():void");
+			}
+
+			private function setupPlayStream2():void
+			{
+
+				var groupspec2:GroupSpecifier=new GroupSpecifier(GROUP_SPEC);
+				groupspec2.serverChannelEnabled=true;
+				groupspec2.multicastEnabled=true;
+
+				playStream2=new NetStream(play2NetConnection, groupspec2.groupspecWithAuthorizations());
+				playStream2.addEventListener(NetStatusEvent.NET_STATUS, netStatus);
+				trace("private function setupPlayStream2():void");
+			}
+
+			private function onNetConnectionNetStatus(event:NetStatusEvent):void
+			{
+				trace("private function onNetConnectionNetStatus(event:NetStatusEvent):void");
+				trace(event.info.code);
+				switch (event.info.code)
+				{
+					case "NetStream.Connect.Success":
+						event.info.stream.dispatchEvent(event);
+						break;
+				}
+			}
+
+			private function publishNetStatus(event:NetStatusEvent):void
+			{
+				try
+				{
+
+
+					trace("private function netStatus(event:NetStatusEvent):void");
+					trace(event.info.code);
+					switch (event.info.code)
+					{
+						case "NetConnection.Connect.Success":
+							if (isStreaming)
+							{
+								setupPublishStream();
+							}
+							break;
+						case "NetStream.Connect.Success":
+							if (isStreaming)
+							{
+								Alert.show("publishStream.play(" + publishLocation + ");");
+								camera=Camera.getCamera()
+								//Setup camera for best possible quality
+								camera.setMode(300, 240, 30)
+								camera.setQuality(0, 90);
+
+								camera.setKeyFrameInterval(24);
+								publishStream.attachAudio(Microphone.getMicrophone());
+								publishStream.attachCamera(camera);
+
+								publishStream.publish(publishLocation);
+									//video1.attachCamera(camera);
+							}
+							break;
+					}
+				}
+				catch (e:Error)
+				{
+
+				}
+			}
+
 			private function netStatus(event:NetStatusEvent):void
 			{
+				trace("private function netStatus(event:NetStatusEvent):void");
+				trace(event.info.code);
 				switch (event.info.code)
 				{
 					case "NetConnection.Connect.Success":
-					{
-						ns=new NetStream(nc);
-						ns.attachCamera(camera);
-						ns.attachAudio(Microphone.getMicrophone());
-						//ns.addEventListener(NetStatusEvent.NET_STATUS, onPublish);
-						ns.bufferTime=0;
-						ns.publish(publishLocation, "live");
+						setupPlayStream();
+						setupPlayStream2();
+						break;
 
-							//ns.attachCamera(camera);
+					case "NetStream.Connect.Success":
+						playStream1.play("stream1");
+						video1.attachNetStream(playStream1);
 
-							//ns.attachAudio(microphone);
-							// add custom metadata to the stream
-						/*
-										var metaData:Object = new Object();
-
-										metaData["description"] = "Chat using VideoChat example."
-
-										nsPublish.send("@setDataFrame", "onMetaData", metaData); */
+						playStream2.play("stream2");
+						video2.attachNetStream(playStream2);
 
 
+						//microphone.rate = 11;
 
+						//microphone.setSilenceLevel(0);
 
+						break;
+					default:
+						//Alert.show(event.info.code);
+						//Alert.show(event.target.toString());
+						break;
 
-
-
-
-					}
 				}
 			}
 
@@ -270,11 +417,11 @@
 		]]>
 	</mx:Script>
 	<!-- this is the hidden local cam -->
-	<mx:VideoDisplay id="videoDisplay"
-					 includeInLayout="false"
-					 visible="false"
-					 width="{normalWidth}"
-					 height="{normalHeight}"/>
+	<!--	<mx:VideoDisplay id="videoDisplay"
+						 includeInLayout="false"
+						 visible="false"
+						 width="{normalWidth}"
+						 height="{normalHeight}"/>-->
 	<mx:VBox id="mainContainer"
 			 width="100%"
 			 height="100%"
@@ -295,16 +442,14 @@
 					 horizontalAlign="center"
 					 horizontalCenter="0"
 					 verticalAlign="middle">
-				<mx:VideoDisplay id="leftStream"
-					rollOverEffect=""
+				<mx:HBox id="leftStream"
 								 width="{normalWidth}"
-								 height="{normalHeight}"
-								 live="true"
-								 autoPlay="true"
-								 source="{serverUrl + '/stream1.sdp'}"/>
+								 height="{normalHeight}"/>
 				<mx:HBox width="100%"
 						 horizontalAlign="right"
 						 horizontalGap="1"
+						 verticalAlign="bottom"
+						 baseline="0"
 						 id="leftControls">
 					<mx:Button label=""
 							   toolTip="Vote Up!"
@@ -326,15 +471,15 @@
 					 horizontalAlign="right"
 					 horizontalCenter="0"
 					 verticalAlign="middle">
-				<mx:VideoDisplay id="rightStream"
+				<mx:HBox id="rightStream"
 								 width="{normalWidth}"
 								 height="{normalHeight}"
-								 live="true"
-								 autoPlay="true"
-								 source="{serverUrl + '/stream2.sdp'}"/>
+								 />
 				<mx:HBox width="100%"
 						 horizontalAlign="right"
 						 horizontalGap="1"
+						 verticalAlign="bottom"
+						 baseline="0"
 						 id="rightControls">
 					<mx:Button label=""
 							   toolTip="Vote Up!"
