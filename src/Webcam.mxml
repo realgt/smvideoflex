@@ -3,17 +3,32 @@
 <mx:Application xmlns:mx="http://www.adobe.com/2006/mxml"
 				layout="vertical"
 				verticalAlign="middle"
-				backgroundColor="black"
+				backgroundAlpha="0"
 				applicationComplete="init(event)">
 	<mx:Style>
-		Button 
-		{
-			padding-bottom:1px;
-			padding-top:1px;
-			padding-right:3px;
-			padding-left:3px;
+		.darkButton {
+			color:#fff;
+			chromeColor:#3D3D3D;
+			fontSize:23;
+			cornerRadius:3;
+		}
+		.lightButton {
+			color:#000;
+			chromeColor:#FFFFCC;
+			fontSize:23;
+			cornerRadius:3;
+		}
+		.videoContainer{
+			padding: 10 10;
+			/* backgroundColor:white;
+			borderColor:green;
+			borderStyle:solid; */
 			
 		}
+		.text{
+			color: #000;
+		}
+
 	</mx:Style>
 	<mx:Script>
 		<![CDATA[
@@ -22,6 +37,7 @@
 			import mx.controls.Alert;
 			import flash.display.StageDisplayState;
 			import flash.display.BitmapData;
+			import flash.text.Font;
 			import mx.graphics.codec.JPEGEncoder;
 			import spark.components.Group;
 
@@ -51,10 +67,12 @@
 			[Bindable]
 			private var serverUrl:String="rtmp://rswcromero-2.local:1935/live";
 
-			private const SERVER:String="rtmfp://p2p.rtmfp.net/";
-			private const DEVKEY:String="2a1b4488487e674b76882706-88f8fb4c1e15";
+			//private const SERVER:String="rtmfp://p2p.rtmfp.net/";
+			//private const DEVKEY:String="2a1b4488487e674b76882706-88f8fb4c1e15";
+			private const SERVER:String="rtmfp";
+			private const DEVKEY:String=":";
 			private const GROUP_SPEC:String="sharkmob/multicast1";
-
+			private var isNativeIPMulticast=true;
 			private var isStreaming:Boolean=false;
 
 			private function init(evt:Event):void
@@ -62,18 +80,18 @@
 				/* Set up full screen handler. */
 				Application.application.stage.addEventListener(FullScreenEvent.FULL_SCREEN, fullScreenHandler);
 				video1=new Video(normalWidth, normalHeight);
-				video1.x=-200;
-				video1.y=-400;
+				video1.x=0;
+				video1.y=0;
 				var uic1:UIComponent=new UIComponent();
 				uic1.addChildAt(video1, 0);
-				leftContainer.addElement(uic1);
+				leftStream.addElement(uic1);
 
 				video2=new Video(normalWidth, normalHeight);
-				video2.x=-400;
-				video2.y=-400;
+				video2.x=0;
+				video2.y=0;
 				var uic2:UIComponent=new UIComponent();
 				uic2.addChildAt(video2, 0);
-				rightContainer.addElement(uic2);
+				rightStream.addElement(uic2);
 
 				connect();
 				camera=Camera.getCamera();
@@ -172,21 +190,32 @@
 						case StageDisplayState.FULL_SCREEN:
 							/* If already in full screen mode, switch to normal mode. */
 							Application.application.stage.displayState=StageDisplayState.NORMAL;
-							/* video2.width=normalWidth;
+							video2.width=normalWidth;
 							video2.height=normalHeight;
 							video1.width=normalWidth;
-							video1.height=normalHeight; */
+							video1.height=normalHeight;
+							video1.x = 0;
+							video1.y = 0;
+							video2.x = 0;
+							video2.y = 0;
 							break;
 						default:
 							/* If not in full screen mode, switch to full screen mode. */
 							Application.application.stage.displayState=StageDisplayState.FULL_SCREEN;
-							/* video2.percentHeight=fullWidth;
-							video2.percentWidth=fullHeight;
-							video1.percentHeight=fullWidth;
-							video1.percentWidth=fullHeight; */
-
+							video2.width=Application.application.stage.stageWidth  / 2.2;
+							video2.height=Application.application.stage.stageHeight  / 2.2;
+							video1.width=Application.application.stage.stageWidth  / 2.2;
+							video1.height=Application.application.stage.stageHeight  / 2.2;
+							
+							video1.x = -200;
+							video1.y = 0;
+							video2.x = -200;
+							video2.y = 0;
+							//Alert.show("video1: " +video1.x.toString() +" "+ video1.y.toString());
+							//Alert.show("video2: " +video2.x.toString() +" "+ video2.y.toString());
 							break;
 					}
+					
 					/* video2.validateNow();
 					video1.validateNow(); */
 				}
@@ -276,6 +305,11 @@
 					var groupspec:GroupSpecifier=new GroupSpecifier(GROUP_SPEC);
 					groupspec.serverChannelEnabled=true;
 					groupspec.multicastEnabled=true;
+					if (isNativeIPMulticast)
+					{
+						groupspec.ipMulticastMemberUpdatesEnabled=true;
+						groupspec.addIPMulticastAddress("225.225.0.1:30303");
+					}
 
 					playStream1=new NetStream(playNetConnection, groupspec.groupspecWithAuthorizations());
 					playStream1.addEventListener(NetStatusEvent.NET_STATUS, netStatus);
@@ -289,27 +323,46 @@
 
 			private function setupPublishStream():void
 			{
-				//Alert.show("setupPublishStream()");
-				var groupspec:GroupSpecifier=new GroupSpecifier(GROUP_SPEC);
-				groupspec.serverChannelEnabled=true;
-				groupspec.multicastEnabled=true;
-
-				publishStream=new NetStream(publishNetConnection, groupspec.groupspecWithAuthorizations());
-				publishStream.addEventListener(NetStatusEvent.NET_STATUS, publishNetStatus);
-
+				try
+				{
+					//Alert.show("setupPublishStream()");
+					var groupspec:GroupSpecifier=new GroupSpecifier(GROUP_SPEC);
+					groupspec.serverChannelEnabled=true;
+					groupspec.multicastEnabled=true;
+					if (isNativeIPMulticast)
+					{
+						groupspec.ipMulticastMemberUpdatesEnabled=true;
+						groupspec.addIPMulticastAddress("225.225.0.1:30303");
+					}
+					publishStream=new NetStream(publishNetConnection, groupspec.groupspecWithAuthorizations());
+					publishStream.addEventListener(NetStatusEvent.NET_STATUS, publishNetStatus);
+				}
+				catch (e:Error)
+				{
+				}
 				//trace"private function setupPublishStream():void");
 			}
 
 			private function setupPlayStream2():void
 			{
+				try
+				{
+					var groupspec2:GroupSpecifier=new GroupSpecifier(GROUP_SPEC);
+					groupspec2.serverChannelEnabled=true;
+					groupspec2.multicastEnabled=true;
+					if (isNativeIPMulticast)
+					{
+						groupspec2.ipMulticastMemberUpdatesEnabled=true;
+						groupspec2.addIPMulticastAddress("225.225.0.1:30303");
+					}
 
-				var groupspec2:GroupSpecifier=new GroupSpecifier(GROUP_SPEC);
-				groupspec2.serverChannelEnabled=true;
-				groupspec2.multicastEnabled=true;
-
-				playStream2=new NetStream(play2NetConnection, groupspec2.groupspecWithAuthorizations());
-				playStream2.addEventListener(NetStatusEvent.NET_STATUS, netStatus);
-				//trace"private function setupPlayStream2():void");
+					playStream2=new NetStream(play2NetConnection, groupspec2.groupspecWithAuthorizations());
+					playStream2.addEventListener(NetStatusEvent.NET_STATUS, netStatus);
+						//trace"private function setupPlayStream2():void");
+				}
+				catch (e:Error)
+				{
+				}
 			}
 
 			private function onNetConnectionNetStatus(event:NetStatusEvent):void
@@ -377,12 +430,17 @@
 						break;
 
 					case "NetStream.Connect.Success":
-						playStream1.play("stream1");
-						video1.attachNetStream(playStream1);
+						if (playStream1 != null)
+						{
+							playStream1.play("stream1");
+							video1.attachNetStream(playStream1);
 
-						playStream2.play("stream2");
-						video2.attachNetStream(playStream2);
-
+						}
+						if (playStream2 != null)
+						{
+							playStream2.play("stream2");
+							video2.attachNetStream(playStream2);
+						}
 
 						//microphone.rate = 11;
 
@@ -400,6 +458,34 @@
 			private function vote(stream:Number):void
 			{
 				ExternalInterface.call("vote(" + stream + ")");
+			}
+
+			private function enlargeVote(num:Number):void
+			{
+				if (num == 1)
+				{
+					vote1Button.label="VOTE!";
+					vote1Button.percentWidth=100;
+				}
+				else if (num == 2)
+				{
+					vote2Button.label="VOTE!";
+					vote2Button.percentWidth=100;
+				}
+			}
+
+			private function shrinkVote(num:Number):void
+			{
+				if (num == 1)
+				{
+					vote1Button.label="";
+					vote1Button.width=20;
+				}
+				else if (num == 2)
+				{
+					vote2Button.label="";
+					vote2Button.width=20;
+				}
 			}
 
 			private function flag(stream:Number):void
@@ -426,74 +512,83 @@
 			 width="100%"
 			 height="100%"
 			 horizontalCenter="0"
-			 verticalAlign="middle"
 			 horizontalAlign="center">
 
 
 		<mx:HBox width="100%"
 				 height="100%"
 				 horizontalCenter="0"
-				 verticalAlign="middle"
 				 horizontalAlign="center">
-
 			<mx:VBox id="leftContainer"
-					 width="50%"
-					 height="100%"
-					 horizontalAlign="center"
-					 horizontalCenter="0"
-					 verticalAlign="middle">
-				<mx:HBox id="leftStream"
-								 width="{normalWidth}"
-								 height="{normalHeight}"/>
-				<mx:HBox width="100%"
-						 horizontalAlign="right"
-						 horizontalGap="1"
-						 verticalAlign="bottom"
-						 baseline="0"
-						 id="leftControls">
-					<mx:Button label=""
-							   toolTip="Vote Up!"
-							   click="vote(1)"
-							   icon="@Embed(source='../assets/up.png')"/>
-					<mx:Button label=""
-							   toolTip="Flag Inappropriate"
-							   click="flag(1)"
-							   icon="@Embed(source='../assets/flag.png')"/>
-				</mx:HBox>
-
-			</mx:VBox>
-
-
-			<mx:Spacer width="20"/>
-			<mx:VBox id="rightContainer"
 					 width="50%"
 					 height="100%"
 					 horizontalAlign="right"
 					 horizontalCenter="0"
-					 verticalAlign="middle">
-				<mx:HBox id="rightStream"
-								 width="{normalWidth}"
-								 height="{normalHeight}"
-								 />
-				<mx:HBox width="100%"
-						 horizontalAlign="right"
+					 verticalAlign="middle"
+					 rollOverEffect="enlargeVote(1)"
+					 rollOutEffect="shrinkVote(1)">
+				<mx:HBox id="leftStream"
+						 styleName="videoContainer"
+						 width="{normalWidth}"
+						 height="{normalHeight}"/>
+				<mx:VBox width="100%"
 						 horizontalGap="1"
 						 verticalAlign="bottom"
 						 baseline="0"
-						 id="rightControls">
-					<mx:Button label=""
+						 id="leftControls">
+					<mx:Button id="vote1Button"
+							   label="V O T E!"
+							   styleName="lightButton"
 							   toolTip="Vote Up!"
-							   click="vote(2)"
+							   click="vote(1)"
+							   width="100%"
 							   icon="@Embed(source='../assets/up.png')"/>
 					<mx:Button label=""
+							   styleName="darkButton"
+							   toolTip="Flag Inappropriate"
+							   click="flag(1)"
+							   icon="@Embed(source='../assets/flag.png')"/>
+				</mx:VBox>
+
+			</mx:VBox>
+
+
+			<mx:Text styleName="text" width="20" fontSize="100" rotation="45" text="VS" verticalCenter="0"/>
+			<mx:VBox id="rightContainer"
+					 width="50%"
+					 height="100%"
+					 rollOverEffect="enlargeVote(2)"
+					 rollOutEffect="shrinkVote(2)"
+					 horizontalAlign="right"
+					 horizontalCenter="0"
+					 verticalAlign="middle">
+				<mx:HBox id="rightStream"
+						 styleName="videoContainer"
+						 width="{normalWidth}"
+						 height="{normalHeight}"/>
+				<mx:VBox width="100%"
+						 verticalAlign="bottom"
+						 baseline="0"
+						 id="rightControls">
+					<mx:Button id="vote2Button"
+							   styleName="lightButton"
+							   label="V O T E!"
+							   toolTip="Vote Up!"
+							   click="vote(2)"
+							   width="100%"
+							   icon="@Embed(source='../assets/up.png')"/>
+					<mx:Button label=""
+							   styleName="darkButton"
 							   toolTip="Flag Inappropriate"
 							   click="flag(2)"
 							   icon="@Embed(source='../assets/flag.png')"/>
-				</mx:HBox>
+				</mx:VBox>
 
 			</mx:VBox>
 		</mx:HBox>
-		<mx:Button label="[]"
+		<mx:Button icon="@Embed(source='../assets/fullscreen.png')"
+				   styleName="darkButton"
+				   toolTip="Fullscreen!"
 				   click="toggleFullScreen()"/>
 	</mx:VBox>
 </mx:Application>
