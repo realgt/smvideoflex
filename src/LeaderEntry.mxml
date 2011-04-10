@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml"
+				layout="vertical"
+				title="Add Entry to Leaderboard!"
+				showCloseButton="true"
+				width="400"
+				height="300"
+				close="closeWindow(event);">
+
+	<mx:Script>
+		<![CDATA[
+			import mx.controls.Alert;
+			import mx.events.CloseEvent;
+			import flash.media.Camera;
+			import flash.media.Video;
+			import flash.events.*;
+			import flash.geom.Matrix;
+			import flash.display.BitmapData;
+			import flash.display.Bitmap;
+
+			import mx.containers.ControlBar;
+			import mx.containers.Panel;
+			import mx.containers.VBox;
+			import mx.controls.Button;
+			import mx.controls.Label;
+			import mx.controls.Spacer;
+			import mx.controls.TextInput;
+			import mx.managers.PopUpManager;
+
+			private var panel:Panel;
+			public static const DEFAULT_CAMERA_WIDTH:Number=320;
+			public static const DEFAULT_CAMERA_HEIGHT:Number=240;
+			public static const DEFAULT_CAMERA_FPS:Number=30;
+
+			private var video:Video;
+			private var camera:Camera;
+
+			private var _cameraWidth:Number;
+			private var _cameraHeight:Number;
+
+			private function init():void
+			{
+				//video!
+				camera=Camera.getCamera();
+
+				_cameraWidth=DEFAULT_CAMERA_WIDTH;
+				_cameraHeight=DEFAULT_CAMERA_HEIGHT;
+
+				if (camera != null)
+				{
+
+					camera.setMode(_cameraWidth, _cameraHeight, DEFAULT_CAMERA_FPS);
+					videoDisplay.attachCamera(camera);
+				}
+			}
+			private function closeWindow(evt:CloseEvent):void
+			{
+				PopUpManager.removePopUp(this);
+			}
+			public function getSnapshotBitmapData():BitmapData
+			{
+				var snapshot:BitmapData=new BitmapData(_cameraWidth, _cameraHeight);
+				snapshot.draw(video, new Matrix());
+				return snapshot;
+			}
+
+			public function getSnapshot():Bitmap
+			{
+				var bitmap:Bitmap=new Bitmap(getSnapshotBitmapData());
+				return bitmap;
+			}
+			public function submitData(event:MouseEvent):void
+			{
+				Alert.show("Thanks, " + nameField.text.toString() + "!");
+			}
+		]]>
+	</mx:Script>
+
+	<mx:VBox id="mainContainer"
+			 width="100%"
+			 height="100%">
+
+		<mx:Label text="Please enter your name"/>
+		<mx:TextInput id="nameField"/>
+		<mx:Label text="Enter a link to your profile"/>
+		<mx:TextInput id="url"/>
+		<mx:VideoDisplay id="videoDisplay"
+						 width="320"
+						 height="240"/>
+
+		<mx:Button click="submitData(event)"
+				   label="Send"/>
+
+	</mx:VBox>
+
+
+</mx:TitleWindow>
