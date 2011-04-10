@@ -25,8 +25,11 @@
 			borderStyle:solid; */
 			
 		}
-		.text{
+		.vsText{
 			color: #000;
+			fontSize: 50;
+			paddingRight:0;
+			margin:0;
 		}
 
 	</mx:Style>
@@ -67,12 +70,12 @@
 			[Bindable]
 			private var serverUrl:String="rtmp://rswcromero-2.local:1935/live";
 
-			//private const SERVER:String="rtmfp://p2p.rtmfp.net/";
-			//private const DEVKEY:String="2a1b4488487e674b76882706-88f8fb4c1e15";
-			private const SERVER:String="rtmfp";
-			private const DEVKEY:String=":";
+			private const SERVER:String="rtmfp://p2p.rtmfp.net/";
+			private const DEVKEY:String="2a1b4488487e674b76882706-88f8fb4c1e15";
+			//private const SERVER:String="rtmfp";
+			//private const DEVKEY:String=":";
 			private const GROUP_SPEC:String="sharkmob/multicast1";
-			private var isNativeIPMulticast=true;
+			private var isNativeIPMulticast=false;
 			private var isStreaming:Boolean=false;
 
 			private function init(evt:Event):void
@@ -194,28 +197,28 @@
 							video2.height=normalHeight;
 							video1.width=normalWidth;
 							video1.height=normalHeight;
-							video1.x = 0;
-							video1.y = 0;
-							video2.x = 0;
-							video2.y = 0;
+							video1.x=0;
+							video1.y=0;
+							video2.x=0;
+							video2.y=0;
 							break;
 						default:
 							/* If not in full screen mode, switch to full screen mode. */
 							Application.application.stage.displayState=StageDisplayState.FULL_SCREEN;
-							video2.width=Application.application.stage.stageWidth  / 2.2;
-							video2.height=Application.application.stage.stageHeight  / 2.2;
-							video1.width=Application.application.stage.stageWidth  / 2.2;
-							video1.height=Application.application.stage.stageHeight  / 2.2;
-							
-							video1.x = -200;
-							video1.y = 0;
-							video2.x = -200;
-							video2.y = 0;
+							video2.width=Application.application.stage.stageWidth / 2.2;
+							video2.height=Application.application.stage.stageHeight / 2.2;
+							video1.width=Application.application.stage.stageWidth / 2.2;
+							video1.height=Application.application.stage.stageHeight / 2.2;
+
+							video1.x=-200;
+							video1.y=0;
+							video2.x=-200;
+							video2.y=0;
 							//Alert.show("video1: " +video1.x.toString() +" "+ video1.y.toString());
 							//Alert.show("video2: " +video2.x.toString() +" "+ video2.y.toString());
 							break;
 					}
-					
+
 					/* video2.validateNow();
 					video1.validateNow(); */
 				}
@@ -421,7 +424,7 @@
 			private function netStatus(event:NetStatusEvent):void
 			{
 				//trace"private function netStatus(event:NetStatusEvent):void");
-				//traceevent.info.code);
+				trace(event.info.code);
 				switch (event.info.code)
 				{
 					case "NetConnection.Connect.Success":
@@ -520,7 +523,7 @@
 				 horizontalCenter="0"
 				 horizontalAlign="center">
 			<mx:VBox id="leftContainer"
-					 width="50%"
+					 width="40%"
 					 height="100%"
 					 horizontalAlign="right"
 					 horizontalCenter="0"
@@ -553,9 +556,27 @@
 			</mx:VBox>
 
 
-			<mx:Text styleName="text" width="20" fontSize="100" rotation="45" text="VS" verticalCenter="0"/>
+			<mx:VBox id="midContainer"
+					 height="100%"
+					 horizontalScrollPolicy="off"
+					 width="50"
+					 verticalAlign="middle"
+					 horizontalAlign="center">
+				<mx:Label text="vs"
+						  styleName="vsText"
+						  id="vsText"/>
+				<mx:Button icon="@Embed(source='../assets/fullscreen.png')"
+						   styleName="darkButton"
+						   toolTip="Fullscreen!"
+						   paddingBottom="2"
+						   paddingLeft="0"
+						   paddingRight="0"
+						   paddingTop="2"
+						   width="36"
+						   click="toggleFullScreen()"/>
+			</mx:VBox>
 			<mx:VBox id="rightContainer"
-					 width="50%"
+					 width="40%"
 					 height="100%"
 					 rollOverEffect="enlargeVote(2)"
 					 rollOutEffect="shrinkVote(2)"
@@ -586,9 +607,5 @@
 
 			</mx:VBox>
 		</mx:HBox>
-		<mx:Button icon="@Embed(source='../assets/fullscreen.png')"
-				   styleName="darkButton"
-				   toolTip="Fullscreen!"
-				   click="toggleFullScreen()"/>
 	</mx:VBox>
 </mx:Application>
