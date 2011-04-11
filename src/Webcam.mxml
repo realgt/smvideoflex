@@ -14,7 +14,7 @@
 		}
 		.lightButton {
 			color:#000;
-			chromeColor:#FFFFCC;
+			chromeColor:#fff;
 			fontSize:23;
 			cornerRadius:3;
 		}
@@ -26,10 +26,14 @@
 			
 		}
 		.vsText{
-			color: #000;
+			color: #fff;
 			fontSize: 50;
 			paddingRight:0;
 			margin:0;
+		}
+		.flagLabel{
+			color:#fff;
+			fontSize: 10;	
 		}
 
 	</mx:Style>
@@ -71,12 +75,12 @@
 			[Bindable]
 			private var serverUrl:String="rtmp://rswcromero-2.local:1935/live";
 
-			private const SERVER:String="rtmfp://p2p.rtmfp.net/";
-			private const DEVKEY:String="2a1b4488487e674b76882706-88f8fb4c1e15";
-			//private const SERVER:String="rtmfp";
-			//private const DEVKEY:String=":";
+			//private const SERVER:String="rtmfp://p2p.rtmfp.net/";
+			//private const DEVKEY:String="2a1b4488487e674b76882706-88f8fb4c1e15";
+			private const SERVER:String="rtmfp";
+			private const DEVKEY:String=":";
 			private const GROUP_SPEC:String="sharkmob/multicast1";
-			private var isNativeIPMulticast=false;
+			private var isNativeIPMulticast=true;
 			private var isStreaming:Boolean=false;
 
 			private function init(evt:Event):void
@@ -97,6 +101,16 @@
 				uic2.addChildAt(video2, 0);
 				rightStream.addElement(uic2);
 
+
+				flagLabel1.useHandCursor=true;
+				flagLabel1.mouseChildren=false;
+				flagLabel1.buttonMode=true;
+
+
+				flagLabel2.useHandCursor=true;
+				flagLabel2.mouseChildren=false;
+				flagLabel2.buttonMode=true;
+				
 				connect();
 				camera=Camera.getCamera();
 				if (camera)
@@ -124,14 +138,18 @@
 
 					//TODO: Detach camera
 					ExternalInterface.call("addToQueue");
-					
+
 					ExternalInterface.addCallback("getEntry", getLeaderboardEntry);
 					ExternalInterface.addCallback("startStream", startVideo);
 					ExternalInterface.addCallback("stopStream", stopVideo);
 				}
+				/* else
+				{
+					Security.showSettings(SecurityPanel.CAMERA);
+				} */
 
 				ExternalInterface.addCallback("setServer", setServer);
-				ExternalInterface.call("asReady");//lets the js side know that the flex is ready for calls
+				ExternalInterface.call("asReady"); //lets the js side know that the flex is ready for calls
 			}
 
 			private function sendByteArray(data:ByteArray):void
@@ -167,9 +185,9 @@
 
 			public function getLeaderboardEntry():void
 			{
-				var dialog:LeaderEntry = PopUpManager.createPopUp(this, LeaderEntry, true) as LeaderEntry;
+				var dialog:LeaderEntry=PopUpManager.createPopUp(this, LeaderEntry, true) as LeaderEntry;
 				PopUpManager.centerPopUp(dialog);
-				
+
 			}
 
 			private function setServer(url:String):void
@@ -554,11 +572,15 @@
 							   click="vote(1)"
 							   width="100%"
 							   icon="@Embed(source='../assets/up.png')"/>
-					<mx:Button label=""
+					<mx:Label styleName="flagLabel"
+							  htmlText="&lt;u&gt;Report this video as abusive / inappropriate&lt;/uu&gt;"
+							  id="flagLabel1"
+							  click="flag(1)"/>
+					<!--<mx:Button label=""
 							   styleName="darkButton"
 							   toolTip="Flag Inappropriate"
 							   click="flag(1)"
-							   icon="@Embed(source='../assets/flag.png')"/>
+							   icon="@Embed(source='../assets/flag.png')"/>-->
 				</mx:VBox>
 
 			</mx:VBox>
@@ -581,7 +603,7 @@
 						   paddingRight="0"
 						   paddingTop="2"
 						   width="36"
-						   click="getLeaderboardEntry()"/>
+						   click="toggleFullScreen()"/>
 			</mx:VBox>
 			<mx:VBox id="rightContainer"
 					 width="40%"
@@ -606,11 +628,15 @@
 							   click="vote(2)"
 							   width="100%"
 							   icon="@Embed(source='../assets/up.png')"/>
-					<mx:Button label=""
+					<mx:Label styleName="flagLabel"
+							  id="flagLabel2"
+							  htmlText="&lt;u&gt;Report this video as abusive / inappropriate&lt;/uu&gt;"
+							  click="flag(2)"/>
+					<!--<mx:Button label=""
 							   styleName="darkButton"
 							   toolTip="Flag Inappropriate"
 							   click="flag(2)"
-							   icon="@Embed(source='../assets/flag.png')"/>
+							   icon="@Embed(source='../assets/flag.png')"/>-->
 				</mx:VBox>
 
 			</mx:VBox>

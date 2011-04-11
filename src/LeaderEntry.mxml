@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <mx:TitleWindow xmlns:mx="http://www.adobe.com/2006/mxml"
 				layout="vertical"
-				title="Add Entry to Leaderboard!"
-				showCloseButton="true"
-				width="400"
-				height="300"
-				close="closeWindow(event);">
+				title=""
+				showCloseButton="false"
+				width="100%"
+				height="100%"
+				close="closeWindow(event);"
+				creationComplete="init()">
 
 	<mx:Script>
 		<![CDATA[
@@ -17,6 +18,9 @@
 			import flash.geom.Matrix;
 			import flash.display.BitmapData;
 			import flash.display.Bitmap;
+			import mx.graphics.codec.JPEGEncoder;
+			
+			import mx.utils.Base64Encoder;
 
 			import mx.containers.ControlBar;
 			import mx.containers.Panel;
@@ -37,6 +41,7 @@
 
 			private var _cameraWidth:Number;
 			private var _cameraHeight:Number;
+			private var bmPic:Bitmap;
 
 			private function init():void
 			{
@@ -48,30 +53,70 @@
 
 				if (camera != null)
 				{
-
 					camera.setMode(_cameraWidth, _cameraHeight, DEFAULT_CAMERA_FPS);
 					videoDisplay.attachCamera(camera);
 				}
 			}
-			private function closeWindow(evt:CloseEvent):void
+
+			private function closeWindow(evt:Event):void
 			{
 				PopUpManager.removePopUp(this);
 			}
+
 			public function getSnapshotBitmapData():BitmapData
 			{
 				var snapshot:BitmapData=new BitmapData(_cameraWidth, _cameraHeight);
-				snapshot.draw(video, new Matrix());
+				snapshot.draw(videoDisplay);
 				return snapshot;
 			}
 
 			public function getSnapshot():Bitmap
 			{
 				var bitmap:Bitmap=new Bitmap(getSnapshotBitmapData());
+
 				return bitmap;
 			}
+
 			public function submitData(event:MouseEvent):void
 			{
-				Alert.show("Thanks, " + nameField.text.toString() + "!");
+				var snap:BitmapData=getSnapshotBitmapData();
+				var jpgenc:JPEGEncoder=new JPEGEncoder(80);
+				var imgByteArray:ByteArray=jpgenc.encode(snap);
+				var encoder:Base64Encoder=new Base64Encoder();
+				for (var i:int=0; i < 10000; i++)
+					imgByteArray.writeByte(i);
+
+				imgByteArray.position=0;
+				encoder.encodeBytes(imgByteArray);
+
+
+				var req:URLRequest=new URLRequest("http://imm.io/store/");
+				req.method=URLRequestMethod.POST;
+				req.contentType="multipart/form-data";
+				var postData:URLVariables=new URLVariables();
+				postData.name="snapshot.jpg";
+				postData.image="data:image/jpg;base64," + encoder.flush();
+				req.data=postData;
+
+				var loader:URLLoader=new URLLoader();
+				loader.dataFormat=URLLoaderDataFormat.BINARY;
+				loader.addEventListener(Event.COMPLETE, loader_complete);
+				loader.load(req);
+
+				
+			}
+
+			private function loader_complete(event:Event):void
+			{
+				var loader:URLLoader = URLLoader(event.target);
+				ExternalInterface.call("sendEntryData", nameField.text, urlField.text, getImageUrl(loader.data));
+				Alert.show("Congrats!, " + nameField.text.toString() + "!");
+				PopUpManager.removePopUp(this);
+				//videoDisplay.attachCamera(null);
+			}
+			private function getImageUrl(imgContainerUrl:String):String
+			{
+				return imgContainerUrl.replace("http://imm.io","http://i.imm.io") + ".jpeg";
 			}
 		]]>
 	</mx:Script>
@@ -81,15 +126,21 @@
 			 height="100%">
 
 		<mx:Label text="Please enter your name"/>
-		<mx:TextInput id="nameField"/>
+		<mx:TextInput id="nameField" width="100%"/>
 		<mx:Label text="Enter a link to your profile"/>
-		<mx:TextInput id="url"/>
+		<mx:TextInput id="urlField" width="100%"/>
 		<mx:VideoDisplay id="videoDisplay"
 						 width="320"
 						 height="240"/>
 
-		<mx:Button click="submitData(event)"
-				   label="Send"/>
+		<mx:HBox width="100%">
+			<mx:Button click="submitData(event)"
+					   label="Smile and Send!"/>
+			<mx:Button click="closeWindow(event)"
+					   label="Cancel"/>
+
+		</mx:HBox>
+
 
 	</mx:VBox>
 
