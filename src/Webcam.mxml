@@ -439,6 +439,11 @@
 									//video1.attachCamera(camera);
 							}
 							break;
+						case "NetStream.Publish.Start":
+							{
+								ExternalInterface.call("startedStreaming", publishLocation);
+								break;
+							}
 					}
 				}
 				catch (e:Error)

@@ -19,7 +19,7 @@
 			import flash.display.BitmapData;
 			import flash.display.Bitmap;
 			import mx.graphics.codec.JPEGEncoder;
-			
+
 			import mx.utils.Base64Encoder;
 
 			import mx.containers.ControlBar;
@@ -103,20 +103,38 @@
 				loader.addEventListener(Event.COMPLETE, loader_complete);
 				loader.load(req);
 
-				
+
 			}
 
 			private function loader_complete(event:Event):void
 			{
-				var loader:URLLoader = URLLoader(event.target);
-				ExternalInterface.call("sendEntryData", nameField.text, urlField.text, getImageUrl(loader.data));
+				var loader:URLLoader=URLLoader(event.target);
+				ExternalInterface.call("sendEntryData", nameField.text, getWorkingUrl(urlField.text), getImageUrl(loader.data));
 				Alert.show("Congrats!, " + nameField.text.toString() + "!");
 				PopUpManager.removePopUp(this);
 				//videoDisplay.attachCamera(null);
 			}
+
+			public static function startsWith(string:String, pattern:String):Boolean
+			{
+				string=string.toLowerCase();
+				pattern=pattern.toLowerCase();
+
+				return pattern == string.substr(0, pattern.length);
+			}
+
 			private function getImageUrl(imgContainerUrl:String):String
 			{
-				return imgContainerUrl.replace("http://imm.io","http://i.imm.io") + ".jpeg";
+				return imgContainerUrl.replace("http://imm.io", "http://i.imm.io") + ".jpeg";
+			}
+
+			public static function getWorkingUrl(url:String):String
+			{
+				if (!startsWith(url, "http://") || !startsWith(url, "https://"))
+				{
+					url="http://" + url;
+				}
+				return url;
 			}
 		]]>
 	</mx:Script>
@@ -126,9 +144,11 @@
 			 height="100%">
 
 		<mx:Label text="Please enter your name"/>
-		<mx:TextInput id="nameField" width="100%"/>
+		<mx:TextInput id="nameField"
+					  width="100%"/>
 		<mx:Label text="Enter a link to your profile"/>
-		<mx:TextInput id="urlField" width="100%"/>
+		<mx:TextInput id="urlField"
+					  width="100%"/>
 		<mx:VideoDisplay id="videoDisplay"
 						 width="320"
 						 height="240"/>
