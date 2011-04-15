@@ -153,9 +153,12 @@
 				} */
 
 				ExternalInterface.addCallback("setServer", setServer);
-				ExternalInterface.call("asReady"); //lets the js side know that the flex is ready for calls
-				ExternalInterface.addCallback("sendStats", updateStats);
+				 //lets the js side know that the flex is ready for calls
+				ExternalInterface.addCallback("setGameStats", updateStats);
 				ExternalInterface.addCallback("setWinner", setWinner);
+				
+				//leave this as the last call, to notify JS that we're ready to rock-n-roll
+				ExternalInterface.call("asReady");
 			}
 			
 			public var viewers:Number = 0;
