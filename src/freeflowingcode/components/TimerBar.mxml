@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="utf-8"?>
+<mx:Canvas xmlns:mx="http://www.adobe.com/2006/mxml"
+	xmlns="http://www.degrafa.com/2007"
+	xmlns:flash.filters="flash.filters.*">
+	
+	<mx:Script>
+		<![CDATA[
+			import mx.core.Application;
+			// this compoenent makes use of Autorefresher - http://code.google.com/p/flexedtoolkit/wiki/AutoRefresher
+			// and Degrafa - http://degrafa.org
+			// see their respective sites for further documentation
+			
+			/* Copyright (c) 2009 Brian Coleman
+
+			Permission is hereby granted, free of charge, to any person
+			obtaining a copy of this code and associated documentation
+			files (the "Code"), to deal in the Code without
+			restriction, including without limitation the rights to use,
+			copy, modify, merge, publish, distribute, sublicense, and/or sell
+			copies of the Software, and to permit persons to whom the
+			Code is furnished to do so, subject to the following
+			conditions:
+			
+			The above copyright notice and this permission notice shall be
+			included in all copies or substantial portions of the Code.
+			
+			THE CODE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+			EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+			OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+			NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+			HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+			WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+			FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+			OTHER DEALINGS IN THE SOFTWARE. */	
+		
+			import mx.core.UIComponent;
+			import flexed.utils.AutoRefresher;
+			import flash.events.TimerEvent;
+        	import flash.utils.Timer;
+			
+			public static const DIRECTION_HORIZONTAL:String = "horizontal";
+			public static const DIRECTION_VERTICAL:String = "vertical";
+						
+			public var tick:Function; // function that will be called on each timer tick
+			public var complete:Function; // function that will be called when timer is complete
+			public var totalTime:Number = 30;
+			public var delay:Number = 1;
+			public var startOnInit:Boolean = true;
+			public var timerOwner:UIComponent;
+			public var direction:String = DIRECTION_HORIZONTAL;
+			public var countDown:Boolean = true;
+			public var reverseProgress:Boolean = false;
+			public var shake:Boolean = false;
+			[Bindable] public var cornerRadius:Number = 5;
+			[Bindable] public var showText:Boolean = true;
+			[Bindable] public var text:String = "";
+			[Bindable] public var color:uint = 0x000000;
+			[Bindable] public var fontSize:int = 18;
+			[Bindable] public var fontWeight:String = "bold";
+			[Bindable] public var fontFamily:String = "Arial";
+			
+			
+			
+			[Bindable] private var surfaceHeight:Number = 30;
+        	[Bindable] private var surfaceWidth:Number = 100;        	
+        	[Bindable] public var progressTime:Number = 0;		
+			[Bindable] private var progressWidth:Number = 0;
+			[Bindable] private var progressHeight:Number = 0;
+			private var progressStep:Number = 0;
+			private var isComplete:Boolean = false;		
+			
+			// using auto refresher class which will handler all timer functions		
+			private var autoRefresh:AutoRefresher = new AutoRefresher();
+			
+			// initializes the AutoRefresher
+			public function init():void{
+				autoRefresh.stop();
+				autoRefresh.timer = null;
+				autoRefresh.complete = false;
+				timerMask.visible = false; // stops some graphic strangeness with the mask when reset			
+				
+				if (direction == DIRECTION_HORIZONTAL){
+					progressStep = (surfaceWidth - 10) / totalTime * delay;
+					reverseProgress ? progressWidth = surfaceWidth - 10 : progressWidth = 0;
+					progressHeight = surfaceHeight - 10;
+				}else if (direction == DIRECTION_VERTICAL){
+					progressStep = (surfaceHeight - 10) / totalTime * delay;
+					progressWidth = surfaceWidth - 10;
+					reverseProgress ? progressHeight = surfaceHeight - 10 : progressHeight = 0;
+				}
+				
+				countDown ? progressTime = totalTime : progressTime = 0;
+								
+				autoRefresh.delay = delay * 1000;
+				autoRefresh.repeatCount = totalTime / delay;
+				autoRefresh.refreshFunction = timerProgress;
+				
+				if (timerOwner != null)
+					autoRefresh.owner = timerOwner;
+				
+				if (startOnInit)
+					autoRefresh.start();
+			}
+			
+			// functions to start and stop the timer
+			public function start():void{
+				autoRefresh.start();
+			}
+			public function stop():void{
+				autoRefresh.stop();
+			}
+			
+			// function to fire each tick
+			public function timerProgress():void{
+				timerMask.visible = true;
+				
+				countDown ? progressTime = progressTime - delay : progressTime = progressTime + delay;
+				
+				if (direction == DIRECTION_HORIZONTAL){
+					reverseProgress ? progressWidth = progressWidth - progressStep : progressWidth = progressWidth + progressStep;
+				}else if (direction == DIRECTION_VERTICAL){					
+					reverseProgress ? progressHeight = progressHeight - progressStep : progressHeight = progressHeight + progressStep;
+				}				
+				
+				if (progressTime <= 0 || progressTime >= totalTime){
+					if (complete != null){
+						stop();
+						autoRefresh.complete = true;
+						if (shake)
+							shakeSequence.play();
+							
+						complete();
+					}
+				}else{
+					if (tick != null)					
+						tick();
+				}				
+			}
+			
+			public function getTime():Number{
+				return progressTime;
+			}
+			
+			override public function set height(value:Number):void{
+	            surfaceHeight = value;
+	        }
+	        
+	        override public function set width(value:Number):void{
+	            surfaceWidth = value;
+	        }
+	        
+	        override public function set x(value:Number):void{
+	            super.x = value;
+	        }
+	        
+	        override public function set y(value:Number):void{
+	            super.y = value;
+	        }	        
+			
+		]]>
+	</mx:Script>
+	
+	<mx:Sequence id="shakeSequence" target="{timerSurface}" duration="50" repeatCount="10">
+		<mx:Move xBy="10"/>
+		<mx:Move xBy="-10"/>
+	</mx:Sequence>
+	
+	<Surface id="timerSurface" width="{surfaceWidth}" height="{surfaceHeight}">		
+		<fills>
+			<SolidFill id="yellowFill" color="#FFFF33" alpha=".8"/>
+            <SolidFill id="redFill" color="#FF0000"/>
+            
+            <LinearGradientFill angle="90" id="greyFill">
+                <GradientStop alpha="1" color="#999999"/>
+                <GradientStop alpha="1" color="#444444"/>
+            </LinearGradientFill>
+
+            <LinearGradientFill angle="90" id="whiteFill">
+                <GradientStop alpha="1" color="#CCCCCC"/>
+                <GradientStop alpha="1" color="#FFFFFF"/>
+            </LinearGradientFill>
+
+            <LinearGradientFill angle="90" id="shineFill">
+                <GradientStop alpha=".3" color="#FFFFFF"/>
+                <GradientStop alpha="0" color="#FFFFFF"/>
+            </LinearGradientFill>
+            
+			<LinearGradientFill angle="90" id="highlightFill">
+                <GradientStop alpha="0" color="#FFFFFF"/>
+                <GradientStop alpha=".3" color="#FFFFFF"/>
+            </LinearGradientFill>
+            
+            <ComplexFill id="metalFill">
+                <BitmapFill source="@Embed('assets/images/metal.png')"/>
+                <BlendFill blendMode="multiply">
+                    <LinearGradientFill angle="90">
+                        <GradientStop alpha=".3" color="#999999"/>
+                        <GradientStop alpha=".6" color="#444444"/>
+                    </LinearGradientFill>
+                </BlendFill>    
+            </ComplexFill>
+		</fills>
+		<strokes>
+            <SolidStroke id="whiteStroke" color="#FFFFFF" weight="3" />
+            <SolidStroke id="blackStroke" color="#000000" weight="1"  />
+            <SolidStroke id="greyStroke" color="#444444" weight="2"/>
+            <SolidStroke id="progressStroke" color="#000000" weight="2" alpha=".7" />
+            
+            <LinearGradientStroke id="greyGradStroke" angle="45">
+                <GradientStop alpha=".8" color="#999999"/>
+                <GradientStop alpha=".2" color="#444444"/>
+            </LinearGradientStroke>          
+               
+        </strokes>
+			
+		<GeometryGroup id="frame">
+            <RoundedRectangle id="rim" width="{surfaceWidth}" height="{surfaceHeight}" fill="{shineFill}" stroke="{greyStroke}" cornerRadius="{cornerRadius}"/>
+            <RoundedRectangle width="{surfaceWidth}" height="{surfaceHeight-1}" fill="{metalFill}" cornerRadius="{cornerRadius}"/>
+            <filters>
+                <flash.filters:DropShadowFilter alpha=".3" color="#000000" distance="4" blurX="4" blurY="4" angle="120"/>
+            </filters>
+        </GeometryGroup>
+        
+        <GeometryGroup id="face" x="4" y="4">
+            <RoundedRectangle width="{surfaceWidth-8}" height="{surfaceHeight-8}" fill="{whiteFill}" stroke="{greyStroke}" cornerRadius="{cornerRadius}"/>
+            <filters>
+                <flash.filters:GlowFilter inner="true" alpha=".6" color="#666666" blurX="16" blurY="16"/>
+            </filters>
+        </GeometryGroup>
+		
+		<GeometryGroup x="5" y="5" id="maskGroup">
+            <RoundedRectangle id="timerMask" width="{progressWidth}" height="{progressHeight}" fill="{yellowFill}" stroke="{progressStroke}" cornerRadius="{cornerRadius}" />
+            <filters>
+                <flash.filters:DropShadowFilter alpha=".3" color="#000000" distance="4" blurX="4" blurY="4" angle="120"/>
+            </filters>        
+        </GeometryGroup>		
+	</Surface>	
+	
+	<!--timer text-->
+	<GeometryComposition graphicsTarget="{[textCanvas]}" width="100%">
+   		<RasterText id="rasterText" width="100%" text="{text == '' ? progressTime.toString() : text}" textColor="{color}" size="{fontSize}" fontFamily="{fontFamily}" fontWeight="{fontWeight}" left="{(surfaceWidth / 2)-13}" top="{(surfaceHeight / 2)-12}">
+           <filters>
+                <mx:GlowFilter color="#000000" strength="1" alpha=".5"/>
+            </filters>
+        </RasterText>
+    </GeometryComposition>	
+	
+	<mx:Canvas id="textCanvas" width="{surfaceWidth}" height="{surfaceHeight}" visible="{showText}" includeInLayout="{showText}" />
+
+</mx:Canvas>

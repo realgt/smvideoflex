@@ -4,6 +4,7 @@
 				layout="vertical"
 				verticalAlign="middle"
 				backgroundAlpha="0"
+				xmlns:components="freeflowingcode.components.*"
 				applicationComplete="init(event)">
 	<mx:Style>
 		.darkButton {
@@ -37,8 +38,12 @@
 		}
 
 	</mx:Style>
+	
+	<!--
+	<mx:Style source="/assets/css/yflexskin.css" />-->
 	<mx:Script>
 		<![CDATA[
+			import mx.collections.ArrayCollection;
 			import mx.core.UIComponent;
 			import mx.utils.Base64Encoder;
 			import mx.controls.Alert;
@@ -48,7 +53,8 @@
 			import mx.graphics.codec.JPEGEncoder;
 			import spark.components.Group;
 			import mx.managers.PopUpManager;
-
+			import flash.utils.getTimer;
+			
 			private var playStream1:NetStream;
 			private var publishStream:NetStream;
 			private var playStream2:NetStream;
@@ -59,7 +65,7 @@
 			private var video1:Video;
 			private var video2:Video;
 
-
+				
 			[Bindable]
 			private var fullWidth:Number=100;
 			[Bindable]
@@ -101,11 +107,9 @@
 				uic2.addChildAt(video2, 0);
 				rightStream.addElement(uic2);
 
-
 				flagLabel1.useHandCursor=true;
 				flagLabel1.mouseChildren=false;
 				flagLabel1.buttonMode=true;
-
 
 				flagLabel2.useHandCursor=true;
 				flagLabel2.mouseChildren=false;
@@ -150,8 +154,139 @@
 
 				ExternalInterface.addCallback("setServer", setServer);
 				ExternalInterface.call("asReady"); //lets the js side know that the flex is ready for calls
+				ExternalInterface.addCallback("sendStats", updateStats);
+				ExternalInterface.addCallback("setWinner", setWinner);
 			}
-
+			
+			public var viewers:Number = 0;
+			public var oldvotes1:Number = 0;
+			public var newvotes1:Number = 0;
+			public var oldvotes2:Number = 0;
+			public var newvotes2:Number = 0;
+			public var oldflags1:Number = 0;
+			public var newflags1:Number = 0;
+			public var oldflags2:Number = 0;
+			public var newflags2:Number = 0;
+			public var newBattle:Boolean = true;
+			
+			public function setWinner(data:String)
+			{
+				//reset life bars
+				trace("WINNER");
+				timerbar.init();
+				timerbar.start();
+				timerbar.stop();
+				
+				timerbar2.init();
+				timerbar2.start();
+				timerbar2.stop();
+				newBattle = true;
+			}
+			
+			private function updateStats(data:String)
+			{
+				var array:Array = new Array();
+				array = data.split("|",7);
+				var ac:ArrayCollection = new ArrayCollection(array);
+				
+				for (var i:int = 0; i < ac.length; i++)
+				{
+					trace("Array" + i + " " + ac.getItemAt(i).toString());
+					if (i == 0)
+					{
+						viewers = Number(ac.getItemAt(i));
+						timerbar.totalTime = Math.round((viewers/2));
+						timerbar2.totalTime = Math.round((viewers/2));
+						
+						if (newBattle)
+						{
+							timerbar.init();
+							timerbar.start();
+							timerbar.stop();
+							
+							timerbar2.init();
+							timerbar2.start();
+							timerbar2.stop();
+							newBattle = false;
+						}
+					}
+					else if (i == 1)
+					{
+						newvotes1 = Number(ac.getItemAt(i));
+						if (oldvotes1 != newvotes1)
+						{
+							var difference:Number = newvotes1 - oldvotes1;
+							for (var i:int = 0; i < difference; i++)
+							{
+								if (timerbar2.progressTime > 0 )
+								{
+									timerbar2.timerProgress();
+								}
+								
+							}
+							oldvotes1 = newvotes1.valueOf();
+						}
+					}
+					else if (i == 2)
+					{
+						newvotes2 = Number(ac.getItemAt(i));
+						
+						if (oldvotes2 != newvotes2)
+						{
+							var difference:Number = newvotes2 - oldvotes2;
+							for (var i:int = 0; i < difference; i++)
+							{
+								if (timerbar.progressTime > 0)
+								{
+									timerbar.timerProgress();
+								}
+							}
+							oldvotes2 = newvotes2.valueOf();
+						}
+					}
+					else if (i == 3)
+					{
+						newflags1 = Number(ac.getItemAt(i));
+						
+						if (oldflags1 != newflags1)
+						{
+							var difference:Number = newflags1 - oldflags1;
+							for (var i:int = 0; i < difference; i++)
+							{
+								for (var j:int = 0; j < 10; j++)
+								{
+									if (timerbar2.progressTime > 0)
+									{
+										timerbar2.timerProgress(); // for each flag vote 10 *
+									}
+								}
+							}
+							oldflags1 = newflags1.valueOf();
+						}
+					}
+					else if (i == 4)
+					{
+						newflags2 = Number(ac.getItemAt(i));
+						if (oldflags2 == newflags2)
+						{
+							var difference:Number = newflags2 - oldflags2;
+							for (var i:int = 0; i < difference; i++)
+							{
+								for (var j:int = 0; j < 10; j++)
+								{
+									if (timerbar.progressTime > 0)
+									{
+										timerbar.timerProgress(); // for each flag vote 10 *
+									}
+								}
+							}
+							oldflags2 = newflags2.valueOf();
+						}
+					}
+				}
+				//getMovie().sendStats(data.stats.viewers + "|" + data.stats.vote1 + "|" + data.stats.vote2 + "|" + data.stats.flag1 +"|"+ data.stats.flag2);
+			}
+			
 			private function sendByteArray(data:ByteArray):void
 			{
 			/* var encoder:Base64Encoder=new Base64Encoder();
@@ -492,6 +627,15 @@
 			private function vote(stream:Number):void
 			{
 				ExternalInterface.call("vote(" + stream + ")");
+				
+				/* if (stream == 2)
+				{
+					timerbar.timerProgress();
+				}
+				else
+				{
+					timerbar2.timerProgress();
+				} */
 			}
 
 			private function enlargeVote(num:Number):void
@@ -553,6 +697,8 @@
 				 height="100%"
 				 horizontalCenter="0"
 				 horizontalAlign="center">
+				 
+				 
 			<mx:VBox id="leftContainer"
 					 width="40%"
 					 height="100%"
@@ -561,6 +707,11 @@
 					 verticalAlign="middle"
 					 rollOverEffect="enlargeVote(1)"
 					 rollOutEffect="shrinkVote(1)">
+					 
+					 
+				  <components:TimerBar id="timerbar" creationComplete="event.currentTarget.init();timerbar.stop();" width="400" height="40"
+				  cornerRadius="10"  reverseProgress="true" />		
+				  
 				<mx:HBox id="leftStream"
 						 styleName="videoContainer"
 						 width="{normalWidth}"
@@ -575,11 +726,17 @@
 							   styleName="lightButton"
 							   toolTip="Vote Up!"
 							   click="vote(1)"
+							   buttonMode = "true"
+							   useHandCursor = "true"
+							   mouseChildren="false" 
 							   width="100%"
 							   icon="@Embed(source='../assets/up.png')"/>
 					<mx:Label styleName="flagLabel"
 							  htmlText="&lt;u&gt;Report this video as abusive / inappropriate&lt;/uu&gt;"
 							  id="flagLabel1"
+							  buttonMode = "true"
+							  useHandCursor = "true"
+							  mouseChildren="false" 
 							  click="flag(1)"/>
 					<!--<mx:Button label=""
 							   styleName="darkButton"
@@ -618,6 +775,10 @@
 					 horizontalAlign="right"
 					 horizontalCenter="0"
 					 verticalAlign="middle">
+					
+				 <components:TimerBar id="timerbar2" creationComplete="event.currentTarget.init(); timerbar2.stop();" width="400" height="40"
+				  cornerRadius="10"  reverseProgress="true" />		
+		
 				<mx:HBox id="rightStream"
 						 styleName="videoContainer"
 						 width="{normalWidth}"
@@ -631,11 +792,17 @@
 							   label="V O T E!"
 							   toolTip="Vote Up!"
 							   click="vote(2)"
+							   buttonMode = "true"
+							   useHandCursor = "true"
+							   mouseChildren="false" 
 							   width="100%"
 							   icon="@Embed(source='../assets/up.png')"/>
 					<mx:Label styleName="flagLabel"
 							  id="flagLabel2"
 							  htmlText="&lt;u&gt;Report this video as abusive / inappropriate&lt;/uu&gt;"
+							  buttonMode = "true"
+							  useHandCursor = "true"
+							  mouseChildren="false" 
 							  click="flag(2)"/>
 					<!--<mx:Button label=""
 							   styleName="darkButton"
