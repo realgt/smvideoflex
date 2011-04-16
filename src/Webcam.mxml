@@ -13,11 +13,12 @@
 			fontSize:23;
 			cornerRadius:3;
 		}
-		.lightButton {
+		.voteButton {
 			color:#000;
 			chromeColor:#fff;
 			fontSize:23;
 			cornerRadius:3;
+			padding:20 20;
 		}
 		.videoContainer{
 			padding: 10 10;
@@ -38,7 +39,7 @@
 		}
 
 	</mx:Style>
-	
+
 	<!--
 	<mx:Style source="/assets/css/yflexskin.css" />-->
 	<mx:Script>
@@ -54,7 +55,7 @@
 			import spark.components.Group;
 			import mx.managers.PopUpManager;
 			import flash.utils.getTimer;
-			
+
 			private var playStream1:NetStream;
 			private var publishStream:NetStream;
 			private var playStream2:NetStream;
@@ -65,7 +66,7 @@
 			private var video1:Video;
 			private var video2:Video;
 
-				
+
 			[Bindable]
 			private var fullWidth:Number=100;
 			[Bindable]
@@ -81,16 +82,15 @@
 			[Bindable]
 			private var serverUrl:String="rtmp://rswcromero-2.local:1935/live";
 
-			//private const SERVER:String="rtmfp://p2p.rtmfp.net/";
-			//private const DEVKEY:String="2a1b4488487e674b76882706-88f8fb4c1e15";
-			private const SERVER:String="rtmfp";
-			private const DEVKEY:String=":";
+			private var SERVER:String="rtmfp://p2p.rtmfp.net/";
+			private var DEVKEY:String="2a1b4488487e674b76882706-88f8fb4c1e15";
 			private const GROUP_SPEC:String="sharkmob/multicast1";
-			private var isNativeIPMulticast=true;
+			private var isNativeIPMulticast=false;
 			private var isStreaming:Boolean=false;
 
 			private function init(evt:Event):void
 			{
+				Security.allowDomain("rswfrodriguez.local");
 				/* Set up full screen handler. */
 				Application.application.stage.addEventListener(FullScreenEvent.FULL_SCREEN, fullScreenHandler);
 				video1=new Video(normalWidth, normalHeight);
@@ -114,211 +114,159 @@
 				flagLabel2.useHandCursor=true;
 				flagLabel2.mouseChildren=false;
 				flagLabel2.buttonMode=true;
-				
+
+				if (isNativeIPMulticast)
+				{
+					SERVER="rtmfp";
+					DEVKEY=":";
+				}
+
 				connect();
 				camera=Camera.getCamera();
 				if (camera)
 				{
-					/* videoDisplay.attachCamera(camera);
-
-					var snap:BitmapData=new BitmapData(128, 96, true);
-					var snapBmp:Bitmap=new Bitmap(snap);
-
-					snapBmp.width=128;
-					snapBmp.height=96;
-					snap.draw(videoDisplay);
-
-
-
-					var jpgenc:JPEGEncoder=new JPEGEncoder(80);
-					var imgByteArray:ByteArray=jpgenc.encode(snap);
-					var encoder:Base64Encoder=new Base64Encoder();
-					for (var i:int=0; i < 10000; i++)
-						imgByteArray.writeByte(i);
-
-					imgByteArray.position=0;
-					encoder.encodeBytes(imgByteArray); */
-					//ExternalInterface.call("sendByteArray",encoder.flush());
-
-					//TODO: Detach camera
 					ExternalInterface.call("addToQueue");
-
 					ExternalInterface.addCallback("getEntry", getLeaderboardEntry);
 					ExternalInterface.addCallback("startStream", startVideo);
-					ExternalInterface.addCallback("stopStream", stopVideo);
 				}
 				/* else
 				{
 					Security.showSettings(SecurityPanel.CAMERA);
 				} */
-
+				ExternalInterface.addCallback("updateStats", updateStats);
 				ExternalInterface.addCallback("setServer", setServer);
-				 //lets the js side know that the flex is ready for calls
-				ExternalInterface.addCallback("setGameStats", updateStats);
 				ExternalInterface.addCallback("setWinner", setWinner);
-				
+				ExternalInterface.addCallback("stopStream", stopVideo);
+
 				//leave this as the last call, to notify JS that we're ready to rock-n-roll
 				ExternalInterface.call("asReady");
+
 			}
-			
-			public var viewers:Number = 0;
-			public var oldvotes1:Number = 0;
-			public var newvotes1:Number = 0;
-			public var oldvotes2:Number = 0;
-			public var newvotes2:Number = 0;
-			public var oldflags1:Number = 0;
-			public var newflags1:Number = 0;
-			public var oldflags2:Number = 0;
-			public var newflags2:Number = 0;
-			public var newBattle:Boolean = true;
-			
-			public function setWinner(data:String)
+
+			public var viewers:Number=0;
+			public var oldvotes1:Number=0;
+			public var newvotes1:Number=0;
+			public var oldvotes2:Number=0;
+			public var newvotes2:Number=0;
+			public var oldflags1:Number=0;
+			public var newflags1:Number=0;
+			public var oldflags2:Number=0;
+			public var newflags2:Number=0;
+			public var newBattle:Boolean=true;
+
+			public function setWinner(data:String):void
 			{
 				//reset life bars
 				trace("WINNER");
 				timerbar.init();
 				timerbar.start();
 				timerbar.stop();
-				
+
 				timerbar2.init();
 				timerbar2.start();
 				timerbar2.stop();
-				newBattle = true;
+				newBattle=true;
+				//updateStats(getStats());
 			}
-			
-			private function updateStats(data:String)
+
+			public function getStats():String
 			{
-				var array:Array = new Array();
-				array = data.split("|",7);
-				var ac:ArrayCollection = new ArrayCollection(array);
-				
-				for (var i:int = 0; i < ac.length; i++)
+				var stats:String=ExternalInterface.call("getStats");
+				return stats;
+			}
+
+			public function updateStats(data:String):void
+			{
+				//Alert.show("updateStats called!:" + data);
+				try
 				{
-					trace("Array" + i + " " + ac.getItemAt(i).toString());
-					if (i == 0)
+
+
+					var array:Array=data.split("|");
+					viewers=Number(array[0]);
+					timerbar.totalTime=Math.round((viewers / 2));
+					timerbar2.totalTime=Math.round((viewers / 2));
+
+					if (newBattle)
 					{
-						viewers = Number(ac.getItemAt(i));
-						timerbar.totalTime = Math.round((viewers/2));
-						timerbar2.totalTime = Math.round((viewers/2));
-						
-						if (newBattle)
-						{
-							timerbar.init();
-							timerbar.start();
-							timerbar.stop();
-							
-							timerbar2.init();
-							timerbar2.start();
-							timerbar2.stop();
-							newBattle = false;
-						}
+						timerbar.init();
+						timerbar.start();
+						timerbar.stop();
+
+						timerbar2.init();
+						timerbar2.start();
+						timerbar2.stop();
+						newBattle=false;
 					}
-					else if (i == 1)
+					newvotes1=Number(array[1]);
+					if (oldvotes1 != newvotes1)
 					{
-						newvotes1 = Number(ac.getItemAt(i));
-						if (oldvotes1 != newvotes1)
+						var difference:Number=newvotes1 - oldvotes1;
+						for (var i:int=0; i < difference; i++)
 						{
-							var difference:Number = newvotes1 - oldvotes1;
-							for (var i:int = 0; i < difference; i++)
+							if (timerbar2.progressTime > 0)
 							{
-								if (timerbar2.progressTime > 0 )
-								{
-									timerbar2.timerProgress();
-								}
-								
+								timerbar2.timerProgress();
 							}
-							oldvotes1 = newvotes1.valueOf();
+
 						}
+						oldvotes1=newvotes1.valueOf();
 					}
-					else if (i == 2)
+					newvotes2=Number(array[2]);
+
+					if (oldvotes2 != newvotes2)
 					{
-						newvotes2 = Number(ac.getItemAt(i));
-						
-						if (oldvotes2 != newvotes2)
+						var difference:Number=newvotes2 - oldvotes2;
+						for (var i:int=0; i < difference; i++)
 						{
-							var difference:Number = newvotes2 - oldvotes2;
-							for (var i:int = 0; i < difference; i++)
+							if (timerbar.progressTime > 0)
+							{
+								timerbar.timerProgress();
+							}
+						}
+						oldvotes2=newvotes2.valueOf();
+					}
+					newflags1=Number(array[3]);
+
+					if (oldflags1 != newflags1)
+					{
+						var difference:Number=newflags1 - oldflags1;
+						for (var i:int=0; i < difference; i++)
+						{
+							for (var j:int=0; j < 10; j++)
+							{
+								if (timerbar2.progressTime > 0)
+								{
+									timerbar2.timerProgress(); // for each flag vote 10 *
+								}
+							}
+						}
+						oldflags1=newflags1.valueOf();
+					}
+					newflags2=Number(array[4]);
+					if (oldflags2 == newflags2)
+					{
+						var difference:Number=newflags2 - oldflags2;
+						for (var i:int=0; i < difference; i++)
+						{
+							for (var j:int=0; j < 10; j++)
 							{
 								if (timerbar.progressTime > 0)
 								{
-									timerbar.timerProgress();
+									timerbar.timerProgress(); // for each flag vote 10 *
 								}
 							}
-							oldvotes2 = newvotes2.valueOf();
 						}
+						oldflags2=newflags2.valueOf();
 					}
-					else if (i == 3)
-					{
-						newflags1 = Number(ac.getItemAt(i));
-						
-						if (oldflags1 != newflags1)
-						{
-							var difference:Number = newflags1 - oldflags1;
-							for (var i:int = 0; i < difference; i++)
-							{
-								for (var j:int = 0; j < 10; j++)
-								{
-									if (timerbar2.progressTime > 0)
-									{
-										timerbar2.timerProgress(); // for each flag vote 10 *
-									}
-								}
-							}
-							oldflags1 = newflags1.valueOf();
-						}
-					}
-					else if (i == 4)
-					{
-						newflags2 = Number(ac.getItemAt(i));
-						if (oldflags2 == newflags2)
-						{
-							var difference:Number = newflags2 - oldflags2;
-							for (var i:int = 0; i < difference; i++)
-							{
-								for (var j:int = 0; j < 10; j++)
-								{
-									if (timerbar.progressTime > 0)
-									{
-										timerbar.timerProgress(); // for each flag vote 10 *
-									}
-								}
-							}
-							oldflags2 = newflags2.valueOf();
-						}
-					}
+						//Alert.show("newvotes2: " + newvotes2 + ",newvotes1: " + newvotes1 + ",viewers: " + viewers + ", newflags1: "+newflags1+", newflags2: "+newflags2);
 				}
-				//getMovie().sendStats(data.stats.viewers + "|" + data.stats.vote1 + "|" + data.stats.vote2 + "|" + data.stats.flag1 +"|"+ data.stats.flag2);
-			}
-			
-			private function sendByteArray(data:ByteArray):void
-			{
-			/* var encoder:Base64Encoder=new Base64Encoder();
+				catch (error:Error)
+				{
+					Alert.show(error.message);
+				}
 
-			for (var i:int=0; i < 10000; i++)
-				data.writeByte(i);
-
-			data.position=0;
-			encoder.encodeBytes(data);
-
-			var req:URLRequest=new URLRequest("http://imm.io/store/");
-			req.method=URLRequestMethod.POST;
-			req.contentType="multipart/form-data";
-			var postData:URLVariables=new URLVariables();
-			postData.name = "snapshot.jpg";
-			postData.image=encoder.flush();
-			req.data=postData;
-
-			var loader:URLLoader=new URLLoader();
-			loader.dataFormat=URLLoaderDataFormat.BINARY;
-			loader.addEventListener(Event.COMPLETE, loader_complete);
-			loader.load(req); */
-
-			}
-
-			private function loader_complete(event:Event):void
-			{
-				//trace"Upload complete!");
-				//videoDisplay.attachCamera(null);
+				//getMovie().sendStats(data.stats.viewers + "|" + data.stats.vote1 + "|" + data.stats.vote2 + "|" + data.stats.flag1 +"|"+ data.stats.flag2); */
 			}
 
 			public function getLeaderboardEntry():void
@@ -331,8 +279,6 @@
 			private function setServer(url:String):void
 			{
 				serverUrl=url;
-			/* leftStream.source=serverUrl + "/stream1.sdp";
-			rightStream.source=serverUrl + "/stream2.sdp"; */
 			}
 
 			private function fullScreenHandler(evt:FullScreenEvent):void
@@ -397,7 +343,10 @@
 				//video1.attachCamera(null);
 				//playStream1.close();
 				//Alert.show("stopStream!");
+				publishStream.close();
+				publishStream.attachCamera(null);
 				isStreaming=false;
+
 			}
 
 			public function startVideo(stream:String):void
@@ -408,45 +357,10 @@
 				if (stream == "stream1" || stream == "stream2")
 				{
 					publishLocation=stream;
-					//camera = flash.media.Camera.getCamera("2");
-					/* camera=Camera.getCamera();
-
-						if (camera)
-						{
-							camera.setMode(300, 240, 30)
-							camera.setQuality(0, 90);
-
-							camera.setKeyFrameInterval(24);
-
-							//ns=new NetStream(nc);
-							//playStream1.attachAudio(Microphone.getMicrophone());
-							//playStream1.addEventListener(NetStatusEvent.NET_STATUS, onPublish);
-							//playStream1.bufferTime=0;
-							//playStream1.publish(publishLocation, "live");
-							playStream1.attachCamera(camera);
-							//trace"playStream1.attachCamera(camera)");
-							playStream1.publish("stream1");
-							video1.attachCamera(camera);
-
-						} */
 
 					publishNetConnection=new NetConnection();
 					publishNetConnection.addEventListener(NetStatusEvent.NET_STATUS, publishNetStatus);
 					publishNetConnection.connect(SERVER + DEVKEY);
-						//setupPublishStream();
-						///nc.connect('rtmp://localhost:1935/live');  
-					/*
-										if (camera)
-										{
-											//camera.setMode(400, 300, 15, false);
-
-
-										}
-										else
-										{
-											////Alert.show("You don't seem to have a camera.");
-										} */
-
 				}
 
 
@@ -570,7 +484,12 @@
 								camera.setQuality(0, 90);
 
 								camera.setKeyFrameInterval(24);
-								publishStream.attachAudio(Microphone.getMicrophone());
+								var microphone:Microphone=Microphone.getMicrophone();
+								if (microphone)
+								{
+									microphone.codec=SoundCodec.SPEEX;
+									publishStream.attachAudio(microphone);
+								}
 								publishStream.attachCamera(camera);
 
 								publishStream.publish(publishLocation);
@@ -578,10 +497,10 @@
 							}
 							break;
 						case "NetStream.Publish.Start":
-							{
-								ExternalInterface.call("startedStreaming", publishLocation);
-								break;
-							}
+						{
+							ExternalInterface.call("startedStreaming", publishLocation);
+							break;
+						}
 					}
 				}
 				catch (e:Error)
@@ -619,6 +538,22 @@
 						//microphone.setSilenceLevel(0);
 
 						break;
+					case "NetStream.Connect.Failed":
+					{
+						if (!isNativeIPMulticast)
+						{
+							//likely a P2P issue connecting to the stream, flip the boolean on native ip multicast
+							isNativeIPMulticast=true;
+							SERVER="rtmfp:"
+							DEVKEY=":";
+							connect();
+						}
+						else
+						{
+							//this happened on a nativeIPMulticast...so client is kinda screwed :p
+						}
+
+					}
 					default:
 						////Alert.show(event.info.code);
 						////Alert.show(event.target.toString());
@@ -630,15 +565,15 @@
 			private function vote(stream:Number):void
 			{
 				ExternalInterface.call("vote(" + stream + ")");
-				
-				/* if (stream == 2)
-				{
-					timerbar.timerProgress();
-				}
-				else
-				{
-					timerbar2.timerProgress();
-				} */
+
+			/* if (stream == 2)
+			{
+				timerbar.timerProgress();
+			}
+			else
+			{
+				timerbar2.timerProgress();
+			} */
 			}
 
 			private function enlargeVote(num:Number):void
@@ -700,8 +635,8 @@
 				 height="100%"
 				 horizontalCenter="0"
 				 horizontalAlign="center">
-				 
-				 
+
+
 			<mx:VBox id="leftContainer"
 					 width="40%"
 					 height="100%"
@@ -710,11 +645,16 @@
 					 verticalAlign="middle"
 					 rollOverEffect="enlargeVote(1)"
 					 rollOutEffect="shrinkVote(1)">
-					 
-					 
-				  <components:TimerBar id="timerbar" creationComplete="event.currentTarget.init();timerbar.stop();" width="400" height="40"
-				  cornerRadius="10"  reverseProgress="true" />		
-				  
+
+
+				<components:TimerBar id="timerbar"
+									 creationComplete="event.currentTarget.init();timerbar.stop();"
+									 width="400"
+									 height="30"
+									 cornerRadius="2"
+									 showText="false"
+									 reverseProgress="true"/>
+
 				<mx:HBox id="leftStream"
 						 styleName="videoContainer"
 						 width="{normalWidth}"
@@ -726,20 +666,20 @@
 						 id="leftControls">
 					<mx:Button id="vote1Button"
 							   label="V O T E!"
-							   styleName="lightButton"
+							   styleName="voteButton"
 							   toolTip="Vote Up!"
 							   click="vote(1)"
-							   buttonMode = "true"
-							   useHandCursor = "true"
-							   mouseChildren="false" 
+							   buttonMode="true"
+							   useHandCursor="true"
+							   mouseChildren="false"
 							   width="100%"
 							   icon="@Embed(source='../assets/up.png')"/>
 					<mx:Label styleName="flagLabel"
-							  htmlText="&lt;u&gt;Report this video as abusive / inappropriate&lt;/uu&gt;"
+							  htmlText="&lt;u&gt;Flag this video as abusive / inappropriate&lt;/uu&gt;"
 							  id="flagLabel1"
-							  buttonMode = "true"
-							  useHandCursor = "true"
-							  mouseChildren="false" 
+							  buttonMode="true"
+							  useHandCursor="true"
+							  mouseChildren="false"
 							  click="flag(1)"/>
 					<!--<mx:Button label=""
 							   styleName="darkButton"
@@ -760,7 +700,7 @@
 				<mx:Label text="vs"
 						  styleName="vsText"
 						  id="vsText"/>
-				<mx:Button icon="@Embed(source='../assets/fullscreen.png')"
+				<!--<mx:Button icon="@Embed(source='../assets/fullscreen.png')"
 						   styleName="darkButton"
 						   toolTip="Fullscreen!"
 						   paddingBottom="2"
@@ -768,7 +708,7 @@
 						   paddingRight="0"
 						   paddingTop="2"
 						   width="36"
-						   click="toggleFullScreen()"/>
+						   click="toggleFullScreen()"/>-->
 			</mx:VBox>
 			<mx:VBox id="rightContainer"
 					 width="40%"
@@ -778,10 +718,15 @@
 					 horizontalAlign="right"
 					 horizontalCenter="0"
 					 verticalAlign="middle">
-					
-				 <components:TimerBar id="timerbar2" creationComplete="event.currentTarget.init(); timerbar2.stop();" width="400" height="40"
-				  cornerRadius="10"  reverseProgress="true" />		
-		
+
+				<components:TimerBar id="timerbar2"
+									 creationComplete="event.currentTarget.init(); timerbar2.stop();"
+									 width="400"
+									 height="30"
+									 cornerRadius="2"
+									 showText="false"
+									 reverseProgress="true"/>
+
 				<mx:HBox id="rightStream"
 						 styleName="videoContainer"
 						 width="{normalWidth}"
@@ -791,21 +736,21 @@
 						 baseline="0"
 						 id="rightControls">
 					<mx:Button id="vote2Button"
-							   styleName="lightButton"
+							   styleName="voteButton"
 							   label="V O T E!"
 							   toolTip="Vote Up!"
 							   click="vote(2)"
-							   buttonMode = "true"
-							   useHandCursor = "true"
-							   mouseChildren="false" 
+							   buttonMode="true"
+							   useHandCursor="true"
+							   mouseChildren="false"
 							   width="100%"
 							   icon="@Embed(source='../assets/up.png')"/>
 					<mx:Label styleName="flagLabel"
 							  id="flagLabel2"
-							  htmlText="&lt;u&gt;Report this video as abusive / inappropriate&lt;/uu&gt;"
-							  buttonMode = "true"
-							  useHandCursor = "true"
-							  mouseChildren="false" 
+							  htmlText="&lt;u&gt;Flag this video as abusive / inappropriate&lt;/uu&gt;"
+							  buttonMode="true"
+							  useHandCursor="true"
+							  mouseChildren="false"
 							  click="flag(2)"/>
 					<!--<mx:Button label=""
 							   styleName="darkButton"
