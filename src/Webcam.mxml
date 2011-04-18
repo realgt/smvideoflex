@@ -44,17 +44,20 @@
 	<mx:Style source="/assets/css/yflexskin.css" />-->
 	<mx:Script>
 		<![CDATA[
-			import mx.collections.ArrayCollection;
-			import mx.core.UIComponent;
-			import mx.utils.Base64Encoder;
-			import mx.controls.Alert;
-			import flash.display.StageDisplayState;
 			import flash.display.BitmapData;
+			import flash.display.StageDisplayState;
+			import flash.net.GroupSpecifier;
 			import flash.text.Font;
-			import mx.graphics.codec.JPEGEncoder;
-			import spark.components.Group;
-			import mx.managers.PopUpManager;
 			import flash.utils.getTimer;
+			
+			import mx.collections.ArrayCollection;
+			import mx.controls.Alert;
+			import mx.core.UIComponent;
+			import mx.graphics.codec.JPEGEncoder;
+			import mx.managers.PopUpManager;
+			import mx.utils.Base64Encoder;
+			
+			import spark.components.Group;
 
 			private var playStream1:NetStream;
 			private var publishStream:NetStream;
@@ -65,6 +68,16 @@
 			private var camera:Camera;
 			private var video1:Video;
 			private var video2:Video;
+			public var viewers:Number=0;
+			public var oldvotes1:Number=0;
+			public var newvotes1:Number=0;
+			public var oldvotes2:Number=0;
+			public var newvotes2:Number=0;
+			public var oldflags1:Number=0;
+			public var newflags1:Number=0;
+			public var oldflags2:Number=0;
+			public var newflags2:Number=0;
+			public var newBattle:Boolean=true;
 
 
 			[Bindable]
@@ -82,15 +95,17 @@
 			[Bindable]
 			private var serverUrl:String="rtmp://rswcromero-2.local:1935/live";
 
-			private var SERVER:String="rtmfp://p2p.rtmfp.net/";
-			private var DEVKEY:String="2a1b4488487e674b76882706-88f8fb4c1e15";
+			//private var SERVER:String="rtmfp://p2p.rtmfp.net/";
+			//private var DEVKEY:String="2a1b4488487e674b76882706-88f8fb4c1e15";
+			private var SERVER:String="rtmfp://ec2-174-129-115-133.compute-1.amazonaws.com:1935";
+			private var DEVKEY:String="/multicast/";
 			private const GROUP_SPEC:String="sharkmob/multicast1";
-			private var isNativeIPMulticast=false;
+			private var isNativeIPMulticast:Boolean=true;
 			private var isStreaming:Boolean=false;
 
 			private function init(evt:Event):void
 			{
-				Security.allowDomain("rswfrodriguez.local");
+//				Security.allowDomain("rswfrodriguez.local");
 				/* Set up full screen handler. */
 				Application.application.stage.addEventListener(FullScreenEvent.FULL_SCREEN, fullScreenHandler);
 				video1=new Video(normalWidth, normalHeight);
@@ -143,16 +158,7 @@
 
 			}
 
-			public var viewers:Number=0;
-			public var oldvotes1:Number=0;
-			public var newvotes1:Number=0;
-			public var oldvotes2:Number=0;
-			public var newvotes2:Number=0;
-			public var oldflags1:Number=0;
-			public var newflags1:Number=0;
-			public var oldflags2:Number=0;
-			public var newflags2:Number=0;
-			public var newBattle:Boolean=true;
+			
 
 			public function setWinner(data:String):void
 			{
@@ -652,6 +658,7 @@
 									 width="400"
 									 height="30"
 									 cornerRadius="2"
+									 startOnInit="true"
 									 showText="false"
 									 reverseProgress="true"/>
 
@@ -724,6 +731,7 @@
 									 width="400"
 									 height="30"
 									 cornerRadius="2"
+									 startOnInit="true"
 									 showText="false"
 									 reverseProgress="true"/>
 

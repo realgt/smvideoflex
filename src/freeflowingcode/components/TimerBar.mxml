@@ -77,7 +77,7 @@
 				autoRefresh.stop();
 				autoRefresh.timer = null;
 				autoRefresh.complete = false;
-				timerMask.visible = false; // stops some graphic strangeness with the mask when reset			
+				//timerMask.visible = false; // stops some graphic strangeness with the mask when reset			
 				
 				if (direction == DIRECTION_HORIZONTAL){
 					progressStep = (surfaceWidth - 10) / totalTime * delay;
@@ -121,6 +121,21 @@
 				}else if (direction == DIRECTION_VERTICAL){					
 					reverseProgress ? progressHeight = progressHeight - progressStep : progressHeight = progressHeight + progressStep;
 				}				
+				//set colors on low count
+				
+				if (progressTime <= totalTime / 4){
+					timerMask.fill = darkRedGradFill;
+				}
+				else if (progressTime <= totalTime / 2){
+					timerMask.fill = redGradFill;
+				}
+				else if (progressTime <= totalTime / 1.1){
+					timerMask.fill = yellowGradFill;
+				}
+				else
+				{
+					timerMask.fill = fullLifeFill;
+				}
 				
 				if (progressTime <= 0 || progressTime >= totalTime){
 					if (complete != null){
@@ -130,6 +145,7 @@
 							shakeSequence.play();
 							
 						complete();
+						timerMask.fill = fullLifeFill;
 					}
 				}else{
 					if (tick != null)					
@@ -170,6 +186,26 @@
 			<SolidFill id="yellowFill" color="#FFFF33" alpha=".8"/>
             <SolidFill id="redFill" color="#FF0000"/>
             
+			<LinearGradientFill angle="90" id="fullLifeFill">
+				<GradientStop alpha="1" color="#00CC33"/>
+				<GradientStop alpha="1" color="#F2E711"/>
+			</LinearGradientFill>
+			
+			<LinearGradientFill angle="90" id="yellowGradFill">
+				<GradientStop alpha="1" color="#F2E711"/>
+				<GradientStop alpha="1" color="#F59227"/>
+			</LinearGradientFill>
+			
+			<LinearGradientFill angle="90" id="redGradFill">
+				<GradientStop alpha="1" color="#F59227"/>
+				<GradientStop alpha="1" color="#E00E0B"/>
+			</LinearGradientFill>
+			
+			<LinearGradientFill angle="90" id="darkRedGradFill">
+				<GradientStop alpha="1" color="#F59227"/>
+				<GradientStop alpha="1" color="#E00E0B"/>
+			</LinearGradientFill>
+			
             <LinearGradientFill angle="90" id="greyFill">
                 <GradientStop alpha="1" color="#999999"/>
                 <GradientStop alpha="1" color="#444444"/>
@@ -191,7 +227,7 @@
             </LinearGradientFill>
             
             <ComplexFill id="metalFill">
-                <BitmapFill source="@Embed('assets/images/metal.png')"/>
+                <!--<BitmapFill source="@Embed('assets/images/metal.png')"/>-->
                 <BlendFill blendMode="multiply">
                     <LinearGradientFill angle="90">
                         <GradientStop alpha=".3" color="#999999"/>
@@ -229,7 +265,7 @@
         </GeometryGroup>
 		
 		<GeometryGroup x="5" y="5" id="maskGroup">
-            <RoundedRectangle id="timerMask" width="{progressWidth}" height="{progressHeight}" fill="{yellowFill}" stroke="{progressStroke}" cornerRadius="{cornerRadius}" />
+            <RoundedRectangle id="timerMask" width="{progressWidth}" height="{progressHeight}" fill="{fullLifeFill}" stroke="{progressStroke}" cornerRadius="{cornerRadius}" />
             <filters>
                 <flash.filters:DropShadowFilter alpha=".3" color="#000000" distance="4" blurX="4" blurY="4" angle="120"/>
             </filters>        
