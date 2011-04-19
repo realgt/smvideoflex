@@ -36,6 +36,7 @@
 		.flagLabel{
 			color:#fff;
 			fontSize: 10;	
+			chromeColor: #000;
 		}
 
 	</mx:Style>
@@ -78,7 +79,8 @@
 			public var oldflags2:Number=0;
 			public var newflags2:Number=0;
 			public var newBattle:Boolean=true;
-
+			private var blurFilter:BlurFilter = new BlurFilter(128,128,1);
+			private var filterArray:Array = [blurFilter];
 
 			[Bindable]
 			private var fullWidth:Number=100;
@@ -95,14 +97,15 @@
 			[Bindable]
 			private var serverUrl:String="rtmp://rswcromero-2.local:1935/live";
 
-			//private var SERVER:String="rtmfp://p2p.rtmfp.net/";
-			//private var DEVKEY:String="2a1b4488487e674b76882706-88f8fb4c1e15";
-			private var SERVER:String="rtmfp://ec2-174-129-115-133.compute-1.amazonaws.com:1935";
-			private var DEVKEY:String="/multicast/";
+			private var SERVER:String="rtmfp://p2p.rtmfp.net/";
+			private var DEVKEY:String="2a1b4488487e674b76882706-88f8fb4c1e15";
+			//private var SERVER:String="rtmfp://ec2-174-129-115-133.compute-1.amazonaws.com:1935";
+			//private var DEVKEY:String="/multicast/";
 			private const GROUP_SPEC:String="sharkmob/multicast1";
-			private var isNativeIPMulticast:Boolean=true;
+			private var isNativeIPMulticast:Boolean=false;
 			private var isStreaming:Boolean=false;
-
+			[Bindable] private var isBattle:Boolean=true;
+			
 			private function init(evt:Event):void
 			{
 //				Security.allowDomain("rswfrodriguez.local");
@@ -151,6 +154,7 @@
 				ExternalInterface.addCallback("updateStats", updateStats);
 				ExternalInterface.addCallback("setServer", setServer);
 				ExternalInterface.addCallback("setWinner", setWinner);
+				ExternalInterface.addCallback("startBattle", startBattle);
 				ExternalInterface.addCallback("stopStream", stopVideo);
 
 				//leave this as the last call, to notify JS that we're ready to rock-n-roll
@@ -158,10 +162,17 @@
 
 			}
 
-			
+			public function startBattle():void
+			{
+				isBattle = true;
+				video1.filters = null;
+				video2.filters = null;
+			}
 
 			public function setWinner(data:String):void
 			{
+				//flip isBattle to disable controls while other battle starts!
+				isBattle = false;
 				//reset life bars
 				trace("WINNER");
 				timerbar.init();
@@ -173,6 +184,18 @@
 				timerbar2.stop();
 				newBattle=true;
 				//updateStats(getStats());
+				
+				
+				//set filters on videos
+				
+				if (data == "1"){
+					video2.filters = filterArray;
+				}
+				else if (data =="2"){
+					video1.filters = filterArray;
+				}
+				
+					
 			}
 
 			public function getStats():String
@@ -241,9 +264,9 @@
 						{
 							for (var j:int=0; j < 10; j++)
 							{
-								if (timerbar2.progressTime > 0)
+								if (timerbar.progressTime > 0)
 								{
-									timerbar2.timerProgress(); // for each flag vote 10 *
+									timerbar.timerProgress(); // for each flag vote 10 *
 								}
 							}
 						}
@@ -257,9 +280,9 @@
 						{
 							for (var j:int=0; j < 10; j++)
 							{
-								if (timerbar.progressTime > 0)
+								if (timerbar2.progressTime > 0)
 								{
-									timerbar.timerProgress(); // for each flag vote 10 *
+									timerbar2.timerProgress(); // for each flag vote 10 *
 								}
 							}
 						}
@@ -546,6 +569,7 @@
 						break;
 					case "NetStream.Connect.Failed":
 					{
+						/*
 						if (!isNativeIPMulticast)
 						{
 							//likely a P2P issue connecting to the stream, flip the boolean on native ip multicast
@@ -558,6 +582,7 @@
 						{
 							//this happened on a nativeIPMulticast...so client is kinda screwed :p
 						}
+						*/
 
 					}
 					default:
@@ -615,11 +640,11 @@
 				ExternalInterface.call("flag(" + stream + ")");
 				if (stream == 1)
 				{
-					//TODO: do something here to leftStream
+					video1.filters = filterArray;
 				}
 				else if (stream == 2)
 				{
-					//TODO: do something here to rightStream
+					video2.filters = filterArray;
 				}
 			}
 		]]>
@@ -648,6 +673,7 @@
 					 height="100%"
 					 horizontalAlign="right"
 					 horizontalCenter="0"
+					 verticalGap="0"
 					 verticalAlign="middle"
 					 rollOverEffect="enlargeVote(1)"
 					 rollOutEffect="shrinkVote(1)">
@@ -680,12 +706,15 @@
 							   useHandCursor="true"
 							   mouseChildren="false"
 							   width="100%"
+							   enabled="{isBattle}"
 							   icon="@Embed(source='../assets/up.png')"/>
 					<mx:Label styleName="flagLabel"
 							  htmlText="&lt;u&gt;Flag this video as abusive / inappropriate&lt;/uu&gt;"
 							  id="flagLabel1"
 							  buttonMode="true"
+							  opaqueBackground="0x000000"
 							  useHandCursor="true"
+							  enabled="{isBattle}"
 							  mouseChildren="false"
 							  click="flag(1)"/>
 					<!--<mx:Button label=""
@@ -724,6 +753,7 @@
 					 rollOutEffect="shrinkVote(2)"
 					 horizontalAlign="right"
 					 horizontalCenter="0"
+					 verticalGap="0"
 					 verticalAlign="middle">
 
 				<components:TimerBar id="timerbar2"
@@ -752,12 +782,15 @@
 							   useHandCursor="true"
 							   mouseChildren="false"
 							   width="100%"
+							   enabled="{isBattle}"
 							   icon="@Embed(source='../assets/up.png')"/>
 					<mx:Label styleName="flagLabel"
 							  id="flagLabel2"
 							  htmlText="&lt;u&gt;Flag this video as abusive / inappropriate&lt;/uu&gt;"
 							  buttonMode="true"
 							  useHandCursor="true"
+							  opaqueBackground="0x000000"
+							  enabled="{isBattle}"
 							  mouseChildren="false"
 							  click="flag(2)"/>
 					<!--<mx:Button label=""

@@ -77,7 +77,7 @@
 				autoRefresh.stop();
 				autoRefresh.timer = null;
 				autoRefresh.complete = false;
-				//timerMask.visible = false; // stops some graphic strangeness with the mask when reset			
+				timerMask.visible = false; // stops some graphic strangeness with the mask when reset			
 				
 				if (direction == DIRECTION_HORIZONTAL){
 					progressStep = (surfaceWidth - 10) / totalTime * delay;
@@ -105,9 +105,12 @@
 			// functions to start and stop the timer
 			public function start():void{
 				autoRefresh.start();
+				timerMask.fill = fullLifeFill;
+				timerMask.visible = true;
 			}
 			public function stop():void{
 				autoRefresh.stop();
+				timerMask.fill = fullLifeFill;
 			}
 			
 			// function to fire each tick
@@ -202,8 +205,8 @@
 			</LinearGradientFill>
 			
 			<LinearGradientFill angle="90" id="darkRedGradFill">
-				<GradientStop alpha="1" color="#F59227"/>
 				<GradientStop alpha="1" color="#E00E0B"/>
+				<GradientStop alpha="1" color="#970A07"/>
 			</LinearGradientFill>
 			
             <LinearGradientFill angle="90" id="greyFill">
