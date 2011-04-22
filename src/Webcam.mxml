@@ -105,6 +105,7 @@
 			private var isNativeIPMulticast:Boolean=false;
 			private var isStreaming:Boolean=false;
 			[Bindable] private var isBattle:Boolean=true;
+			private var hasConnectedToP2P:Boolean=false;
 			
 			private function init(evt:Event):void
 			{
@@ -174,7 +175,7 @@
 				//flip isBattle to disable controls while other battle starts!
 				isBattle = false;
 				//reset life bars
-				trace("WINNER");
+				Alert.show("WINNER");
 				timerbar.init();
 				timerbar.start();
 				timerbar.stop();
@@ -369,27 +370,36 @@
 
 			public function stopVideo():void
 			{
-				//video1.attachCamera(null);
-				//playStream1.close();
-				//Alert.show("stopStream!");
-				publishStream.close();
-				publishStream.attachCamera(null);
-				isStreaming=false;
+				if (hasConnectedToP2P)
+				{
+					//video1.attachCamera(null);
+					//playStream1.close();
+					//Alert.show("stopStream!");
+					//if (publishNetConnection) publishNetConnection.close();
+					if (publishStream) {
+						publishStream.close();
+						publishStream.attachCamera(null);
+					}
+					isStreaming=false;
+				}
 
 			}
 
 			public function startVideo(stream:String):void
 			{
-				//trace"startVideo with: " + stream);
-				//Alert.show("startStream!");
-				isStreaming=true;
-				if (stream == "stream1" || stream == "stream2")
+				if (hasConnectedToP2P)
 				{
-					publishLocation=stream;
-
-					publishNetConnection=new NetConnection();
-					publishNetConnection.addEventListener(NetStatusEvent.NET_STATUS, publishNetStatus);
-					publishNetConnection.connect(SERVER + DEVKEY);
+					Alert.show("startVideo with: " + stream);
+					//Alert.show("startStream on " + stream);
+					isStreaming=true;
+					if (stream == "stream1" || stream == "stream2")
+					{
+						publishLocation=stream;
+	
+						publishNetConnection=new NetConnection();
+						publishNetConnection.addEventListener(NetStatusEvent.NET_STATUS, publishNetStatus);
+						publishNetConnection.connect(SERVER + DEVKEY);
+					}
 				}
 
 
@@ -405,7 +415,7 @@
 				play2NetConnection=new NetConnection();
 				play2NetConnection.addEventListener(NetStatusEvent.NET_STATUS, netStatus);
 				play2NetConnection.connect(SERVER + DEVKEY);
-				//trace"private function connect():void");
+				//Alert.show("private function connect():void");
 			}
 
 			private function setupPlayStream():void
@@ -428,7 +438,7 @@
 				{
 				}
 
-				//trace"private function setupPlayStream():void");
+				//Alert.show("private function setupPlayStream():void");
 			}
 
 			private function setupPublishStream():void
@@ -450,7 +460,7 @@
 				catch (e:Error)
 				{
 				}
-				//trace"private function setupPublishStream():void");
+				//Alert.show("private function setupPublishStream():void");
 			}
 
 			private function setupPlayStream2():void
@@ -468,7 +478,7 @@
 
 					playStream2=new NetStream(play2NetConnection, groupspec2.groupspecWithAuthorizations());
 					playStream2.addEventListener(NetStatusEvent.NET_STATUS, netStatus);
-						//trace"private function setupPlayStream2():void");
+						//Alert.show("private function setupPlayStream2():void");
 				}
 				catch (e:Error)
 				{
@@ -477,8 +487,8 @@
 
 			private function onNetConnectionNetStatus(event:NetStatusEvent):void
 			{
-				//trace"private function onNetConnectionNetStatus(event:NetStatusEvent):void");
-				//traceevent.info.code);
+				//Alert.show("private function onNetConnectionNetStatus(event:NetStatusEvent):void");
+				//Alert.showevent.info.code);
 				switch (event.info.code)
 				{
 					case "NetStream.Connect.Success":
@@ -493,8 +503,8 @@
 				{
 
 
-					//trace"private function netStatus(event:NetStatusEvent):void");
-					//traceevent.info.code);
+					//Alert.show("private function netStatus(event:NetStatusEvent):void");
+					Alert.show(event.info.code);
 					switch (event.info.code)
 					{
 						case "NetConnection.Connect.Success":
@@ -530,6 +540,7 @@
 							ExternalInterface.call("startedStreaming", publishLocation);
 							break;
 						}
+							
 					}
 				}
 				catch (e:Error)
@@ -540,11 +551,12 @@
 
 			private function netStatus(event:NetStatusEvent):void
 			{
-				//trace"private function netStatus(event:NetStatusEvent):void");
-				trace(event.info.code);
+				//Alert.show("private function netStatus(event:NetStatusEvent):void");
+				//Alert.show(event.info.code);
 				switch (event.info.code)
 				{
 					case "NetConnection.Connect.Success":
+						hasConnectedToP2P = true;
 						setupPlayStream();
 						setupPlayStream2();
 						break;
@@ -567,7 +579,7 @@
 						//microphone.setSilenceLevel(0);
 
 						break;
-					case "NetStream.Connect.Failed":
+					case "NetConnection.Connect.Failed"://failed to connect to Rendezvous (Cirrus/FMS)
 					{
 						/*
 						if (!isNativeIPMulticast)
@@ -583,7 +595,14 @@
 							//this happened on a nativeIPMulticast...so client is kinda screwed :p
 						}
 						*/
+						break;
 
+					}
+					case "NetStream.Connect.Rejected": //rejected the P2P allow/deny window
+					{
+						//Alert.show("You must click 'Allow' on the Peer-to-Peer dialog in order to use this site");
+						Security.showSettings(SecurityPanel.PRIVACY);
+						break;
 					}
 					default:
 						////Alert.show(event.info.code);
