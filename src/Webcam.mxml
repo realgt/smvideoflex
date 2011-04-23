@@ -3,10 +3,14 @@
 <mx:Application xmlns:mx="http://www.adobe.com/2006/mxml"
 				layout="vertical"
 				verticalAlign="middle"
-				backgroundAlpha="0"
+				styleName="app"
+				backgroundColor="#ffffff"
 				xmlns:components="freeflowingcode.components.*"
 				applicationComplete="init(event)">
 	<mx:Style>
+		.app{
+			background-image: Embed("assets/images/bg.jpg");
+		}
 		.darkButton {
 			color:#fff;
 			chromeColor:#3D3D3D;
@@ -15,7 +19,7 @@
 		}
 		.voteButton {
 			color:#000;
-			chromeColor:#fff;
+			chromeColor:#ffffff;
 			fontSize:23;
 			cornerRadius:3;
 			padding:20 20;
@@ -29,7 +33,7 @@
 		}
 		.vsText{
 			color: #fff;
-			fontSize: 50;
+			fontSize: 40;
 			paddingRight:0;
 			margin:0;
 		}
@@ -50,6 +54,8 @@
 			import flash.net.GroupSpecifier;
 			import flash.text.Font;
 			import flash.utils.getTimer;
+			import flash.system.Security;
+			import flash.system.SecurityPanel;
 			
 			import mx.collections.ArrayCollection;
 			import mx.controls.Alert;
@@ -58,14 +64,19 @@
 			import mx.managers.PopUpManager;
 			import mx.utils.Base64Encoder;
 			
-			import spark.components.Group;
+			
+			//NetConnection, NetStream for Playing Stream 1
+			private var netConnection:NetConnection = null;
+			private var playNetConnection:NetConnection = null;
+			private var playStream1:NetStream = null;
 
-			private var playStream1:NetStream;
-			private var publishStream:NetStream;
-			private var playStream2:NetStream;
-			private var playNetConnection:NetConnection;
-			private var play2NetConnection:NetConnection;
-			private var publishNetConnection:NetConnection;
+			private var playStream2:NetStream = null;
+			
+			//NetConnection, NetStream for PUBLISHING			
+			private var publishNetConnection:NetConnection = null;
+			private var publishStream:NetStream = null;
+			
+			private var netGroup:NetGroup = null;
 			private var camera:Camera;
 			private var video1:Video;
 			private var video2:Video;
@@ -92,7 +103,7 @@
 			private var normalHeight:Number=300;
 
 			[Bindable]
-			private var publishLocation:String;
+			private var publishLocation:String = "";
 
 			[Bindable]
 			private var serverUrl:String="rtmp://rswcromero-2.local:1935/live";
@@ -109,60 +120,76 @@
 			
 			private function init(evt:Event):void
 			{
-//				Security.allowDomain("rswfrodriguez.local");
-				/* Set up full screen handler. */
-				Application.application.stage.addEventListener(FullScreenEvent.FULL_SCREEN, fullScreenHandler);
-				video1=new Video(normalWidth, normalHeight);
-				video1.x=0;
-				video1.y=0;
-				var uic1:UIComponent=new UIComponent();
-				uic1.addChildAt(video1, 0);
-				leftStream.addElement(uic1);
 
-				video2=new Video(normalWidth, normalHeight);
-				video2.x=0;
-				video2.y=0;
-				var uic2:UIComponent=new UIComponent();
-				uic2.addChildAt(video2, 0);
-				rightStream.addElement(uic2);
-
-				flagLabel1.useHandCursor=true;
-				flagLabel1.mouseChildren=false;
-				flagLabel1.buttonMode=true;
-
-				flagLabel2.useHandCursor=true;
-				flagLabel2.mouseChildren=false;
-				flagLabel2.buttonMode=true;
-
-				if (isNativeIPMulticast)
+				try
 				{
-					SERVER="rtmfp";
-					DEVKEY=":";
-				}
-
-				connect();
-				camera=Camera.getCamera();
-				if (camera)
-				{
-					ExternalInterface.call("addToQueue");
-					ExternalInterface.addCallback("getEntry", getLeaderboardEntry);
-					ExternalInterface.addCallback("startStream", startVideo);
-				}
-				/* else
-				{
+					/* Set up full screen handler. */
+					Application.application.stage.addEventListener(FullScreenEvent.FULL_SCREEN, fullScreenHandler);
+					video1=new Video(normalWidth, normalHeight);
+					video1.x=0;
+					video1.y=0;
+					var uic1:UIComponent=new UIComponent();
+					uic1.addChildAt(video1, 0);
+					leftStream.addElement(uic1);
+					
+					video2=new Video(normalWidth, normalHeight);
+					video2.x=0;
+					video2.y=0;
+					var uic2:UIComponent=new UIComponent();
+					uic2.addChildAt(video2, 0);
+					rightStream.addElement(uic2);
+					
+					flagLabel1.useHandCursor=true;
+					flagLabel1.mouseChildren=false;
+					flagLabel1.buttonMode=true;
+					
+					flagLabel2.useHandCursor=true;
+					flagLabel2.mouseChildren=false;
+					flagLabel2.buttonMode=true;
+					
+					if (isNativeIPMulticast)
+					{
+						SERVER="rtmfp";
+						DEVKEY=":";
+					}
+					
+					connect();
+					camera=Camera.getCamera();
+					if (camera)
+					{
+						camera.addEventListener(StatusEvent.STATUS, cameraStatusHandler);
+						ExternalInterface.call("addToQueue");
+						ExternalInterface.addCallback("getEntry", getLeaderboardEntry);
+						ExternalInterface.addCallback("startStream", startVideo);
+						//Security.showSettings(SecurityPanel.CAMERA);//to get permission already!
+					}
+					/* else
+					{
 					Security.showSettings(SecurityPanel.CAMERA);
-				} */
-				ExternalInterface.addCallback("updateStats", updateStats);
-				ExternalInterface.addCallback("setServer", setServer);
-				ExternalInterface.addCallback("setWinner", setWinner);
-				ExternalInterface.addCallback("startBattle", startBattle);
-				ExternalInterface.addCallback("stopStream", stopVideo);
+					} */
+					ExternalInterface.addCallback("updateStats", updateStats);
+					ExternalInterface.addCallback("setServer", setServer);
+					ExternalInterface.addCallback("setWinner", setWinner);
+					ExternalInterface.addCallback("startBattle", startBattle);
+					ExternalInterface.addCallback("stopStream", stopVideo);
+					
+					//leave this as the last call, to notify JS that we're ready to rock-n-roll
+					ExternalInterface.call("asReady");
 
-				//leave this as the last call, to notify JS that we're ready to rock-n-roll
-				ExternalInterface.call("asReady");
-
+				}
+				catch (e:Error)
+				{
+					Alert.show(e.message);
+				}
 			}
 
+			private function cameraStatusHandler(event:StatusEvent):void
+			{
+				if (event.code == "Camera.Muted" && isStreaming && publishLocation != "")
+				{
+					ExternalInterface.call("abortStream", publishLocation);
+				}
+			}
 			public function startBattle():void
 			{
 				isBattle = true;
@@ -175,7 +202,7 @@
 				//flip isBattle to disable controls while other battle starts!
 				isBattle = false;
 				//reset life bars
-				Alert.show("WINNER");
+				//Alert.show("WINNER");
 				timerbar.init();
 				timerbar.start();
 				timerbar.stop();
@@ -370,36 +397,50 @@
 
 			public function stopVideo():void
 			{
-				if (hasConnectedToP2P)
+				try
 				{
-					//video1.attachCamera(null);
-					//playStream1.close();
-					//Alert.show("stopStream!");
-					//if (publishNetConnection) publishNetConnection.close();
-					if (publishStream) {
-						publishStream.close();
-						publishStream.attachCamera(null);
+					if (hasConnectedToP2P)
+					{
+						//video1.attachCamera(null);
+						//playStream1.close();
+						//Alert.show("stopStream!");
+						//if (publishNetConnection) publishNetConnection.close();
+						if (publishStream) {
+							publishStream.close();
+							publishStream.attachCamera(null);
+						}
+						isStreaming=false;
 					}
-					isStreaming=false;
+				}
+				catch (e:Error)
+				{
+					Alert.show(e.message);
 				}
 
 			}
 
 			public function startVideo(stream:String):void
 			{
-				if (hasConnectedToP2P)
+				try
 				{
-					Alert.show("startVideo with: " + stream);
-					//Alert.show("startStream on " + stream);
-					isStreaming=true;
-					if (stream == "stream1" || stream == "stream2")
+					if (hasConnectedToP2P)
 					{
-						publishLocation=stream;
-	
-						publishNetConnection=new NetConnection();
-						publishNetConnection.addEventListener(NetStatusEvent.NET_STATUS, publishNetStatus);
-						publishNetConnection.connect(SERVER + DEVKEY);
+						//Alert.show("startVideo with: " + stream);
+						//Alert.show("startStream on " + stream);
+						isStreaming=true;
+						if (stream == "stream1" || stream == "stream2")
+						{
+							publishLocation=stream;
+		
+							publishNetConnection=new NetConnection();
+							publishNetConnection.addEventListener(NetStatusEvent.NET_STATUS, publishNetStatus);
+							publishNetConnection.connect(SERVER + DEVKEY);
+						}
 					}
+				}
+				catch (e:Error)
+				{
+					Alert.show(e.message);
 				}
 
 
@@ -407,18 +448,27 @@
 
 			private function connect():void
 			{
+				try {
+					netConnection=new NetConnection();
+					netConnection.addEventListener(NetStatusEvent.NET_STATUS, netStatus);
+					netConnection.connect(SERVER + DEVKEY);
+				}
+				catch (e:Error)
+				{
+					Alert.show(e.message);
+				}
+				
+				//playNetConnection=new NetConnection();
+				//playNetConnection.addEventListener(NetStatusEvent.NET_STATUS, netStatus);
+				//playNetConnection.connect(SERVER + DEVKEY);
 
-				playNetConnection=new NetConnection();
-				playNetConnection.addEventListener(NetStatusEvent.NET_STATUS, netStatus);
-				playNetConnection.connect(SERVER + DEVKEY);
-
-				play2NetConnection=new NetConnection();
-				play2NetConnection.addEventListener(NetStatusEvent.NET_STATUS, netStatus);
-				play2NetConnection.connect(SERVER + DEVKEY);
+				//play2NetConnection=new NetConnection();
+				//play2NetConnection.addEventListener(NetStatusEvent.NET_STATUS, netStatus);
+				//play2NetConnection.connect(SERVER + DEVKEY);
 				//Alert.show("private function connect():void");
 			}
 
-			private function setupPlayStream():void
+			private function setupStreams():void
 			{
 				try
 				{
@@ -431,15 +481,24 @@
 						groupspec.addIPMulticastAddress("225.225.0.1:30303");
 					}
 
-					playStream1=new NetStream(playNetConnection, groupspec.groupspecWithAuthorizations());
+					playStream1=new NetStream(netConnection, groupspec.groupspecWithAuthorizations());
 					playStream1.addEventListener(NetStatusEvent.NET_STATUS, netStatus);
+					
+					playStream2=new NetStream(netConnection, groupspec.groupspecWithAuthorizations());
+					playStream2.addEventListener(NetStatusEvent.NET_STATUS, netStatus);
+					
+					netGroup = new NetGroup(netConnection, groupspec.groupspecWithAuthorizations());
+					netGroup.addEventListener(NetStatusEvent.NET_STATUS, netStatus);
 				}
 				catch (e:Error)
 				{
+					Alert.show(e.message);
 				}
 
-				//Alert.show("private function setupPlayStream():void");
+				//Alert.show("private function setupStreams():void");
 			}
+			
+
 
 			private function setupPublishStream():void
 			{
@@ -456,45 +515,13 @@
 					}
 					publishStream=new NetStream(publishNetConnection, groupspec.groupspecWithAuthorizations());
 					publishStream.addEventListener(NetStatusEvent.NET_STATUS, publishNetStatus);
+					//Alert.show("private function setupPublishStream():void");
 				}
 				catch (e:Error)
 				{
+					Alert.show(e.message);
 				}
-				//Alert.show("private function setupPublishStream():void");
-			}
-
-			private function setupPlayStream2():void
-			{
-				try
-				{
-					var groupspec2:GroupSpecifier=new GroupSpecifier(GROUP_SPEC);
-					groupspec2.serverChannelEnabled=true;
-					groupspec2.multicastEnabled=true;
-					if (isNativeIPMulticast)
-					{
-						groupspec2.ipMulticastMemberUpdatesEnabled=true;
-						groupspec2.addIPMulticastAddress("225.225.0.1:30303");
-					}
-
-					playStream2=new NetStream(play2NetConnection, groupspec2.groupspecWithAuthorizations());
-					playStream2.addEventListener(NetStatusEvent.NET_STATUS, netStatus);
-						//Alert.show("private function setupPlayStream2():void");
-				}
-				catch (e:Error)
-				{
-				}
-			}
-
-			private function onNetConnectionNetStatus(event:NetStatusEvent):void
-			{
-				//Alert.show("private function onNetConnectionNetStatus(event:NetStatusEvent):void");
-				//Alert.showevent.info.code);
-				switch (event.info.code)
-				{
-					case "NetStream.Connect.Success":
-						event.info.stream.dispatchEvent(event);
-						break;
-				}
+				
 			}
 
 			private function publishNetStatus(event:NetStatusEvent):void
@@ -504,7 +531,7 @@
 
 
 					//Alert.show("private function netStatus(event:NetStatusEvent):void");
-					Alert.show(event.info.code);
+					//Alert.show(event.info.code);
 					switch (event.info.code)
 					{
 						case "NetConnection.Connect.Success":
@@ -545,85 +572,79 @@
 				}
 				catch (e:Error)
 				{
-
+					Alert.show(e.message);
 				}
 			}
 
 			private function netStatus(event:NetStatusEvent):void
 			{
-				//Alert.show("private function netStatus(event:NetStatusEvent):void");
-				//Alert.show(event.info.code);
-				switch (event.info.code)
+				try
 				{
-					case "NetConnection.Connect.Success":
-						hasConnectedToP2P = true;
-						setupPlayStream();
-						setupPlayStream2();
-						break;
-
-					case "NetStream.Connect.Success":
-						if (playStream1 != null)
-						{
-							playStream1.play("stream1");
-							video1.attachNetStream(playStream1);
-
-						}
-						if (playStream2 != null)
-						{
-							playStream2.play("stream2");
-							video2.attachNetStream(playStream2);
-						}
-
-						//microphone.rate = 11;
-
-						//microphone.setSilenceLevel(0);
-
-						break;
-					case "NetConnection.Connect.Failed"://failed to connect to Rendezvous (Cirrus/FMS)
+					
+					//Alert.show("private function netStatus(event:NetStatusEvent):void");
+					//Alert.show(event.info.code);
+					switch (event.info.code)
 					{
-						/*
-						if (!isNativeIPMulticast)
+						case "NetConnection.Connect.Success":
+							setupStreams();
+							break;
+	
+						case "NetStream.Connect.Success":
+							hasConnectedToP2P = true;
+							if (playStream1 != null)
+							{
+								playStream1.play("stream1");
+								video1.attachNetStream(playStream1);
+	
+							}
+							if (playStream2 != null)
+							{
+								playStream2.play("stream2");
+								video2.attachNetStream(playStream2);
+							}
+	
+							//microphone.rate = 11;
+	
+							//microphone.setSilenceLevel(0);
+	
+							break;
+						case "NetConnection.Connect.Failed"://failed to connect to Rendezvous (Cirrus/FMS)
 						{
-							//likely a P2P issue connecting to the stream, flip the boolean on native ip multicast
-							isNativeIPMulticast=true;
-							SERVER="rtmfp:"
-							DEVKEY=":";
-							connect();
+							/*
+							if (!isNativeIPMulticast)
+							{
+								//likely a P2P issue connecting to the stream, flip the boolean on native ip multicast
+								isNativeIPMulticast=true;
+								SERVER="rtmfp:"
+								DEVKEY=":";
+								connect();
+							}
+							else
+							{
+								//this happened on a nativeIPMulticast...so client is kinda screwed :p
+							}
+							*/
+							break;
+	
 						}
-						else
+						case "NetStream.Connect.Rejected": //rejected the P2P allow/deny window
 						{
-							//this happened on a nativeIPMulticast...so client is kinda screwed :p
+							Alert.show("You must click 'Allow' on the Peer-Assisted dialog or add this site to the Always-Allowed sites in the Flash Settings Manager");
+							//Security.showSettings(SecurityPanel.SETTINGS_MANAGER);
+							break;
 						}
-						*/
-						break;
-
+	
 					}
-					case "NetStream.Connect.Rejected": //rejected the P2P allow/deny window
-					{
-						//Alert.show("You must click 'Allow' on the Peer-to-Peer dialog in order to use this site");
-						Security.showSettings(SecurityPanel.PRIVACY);
-						break;
-					}
-					default:
-						////Alert.show(event.info.code);
-						////Alert.show(event.target.toString());
-						break;
-
+				}
+				catch (e:Error)
+				{
+					Alert.show(e.message);
 				}
 			}
 
 			private function vote(stream:Number):void
 			{
 				ExternalInterface.call("vote(" + stream + ")");
-
-			/* if (stream == 2)
-			{
-				timerbar.timerProgress();
-			}
-			else
-			{
-				timerbar2.timerProgress();
-			} */
 			}
 
 			private function enlargeVote(num:Number):void
@@ -717,7 +738,7 @@
 						 baseline="0"
 						 id="leftControls">
 					<mx:Button id="vote1Button"
-							   label="V O T E!"
+							   label="V O T E !"
 							   styleName="voteButton"
 							   toolTip="Vote Up!"
 							   click="vote(1)"
@@ -794,7 +815,7 @@
 						 id="rightControls">
 					<mx:Button id="vote2Button"
 							   styleName="voteButton"
-							   label="V O T E!"
+							   label="V O T E !"
 							   toolTip="Vote Up!"
 							   click="vote(2)"
 							   buttonMode="true"
