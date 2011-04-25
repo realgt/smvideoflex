@@ -157,8 +157,8 @@
 					camera=Camera.getCamera();
 					if (camera)
 					{
+						
 						camera.addEventListener(StatusEvent.STATUS, cameraStatusHandler);
-						ExternalInterface.call("addToQueue");
 						ExternalInterface.addCallback("getEntry", getLeaderboardEntry);
 						ExternalInterface.addCallback("startStream", startVideo);
 						//Security.showSettings(SecurityPanel.CAMERA);//to get permission already!
@@ -179,7 +179,7 @@
 				}
 				catch (e:Error)
 				{
-					Alert.show(e.message);
+					//Alert.show(e.message);
 				}
 			}
 
@@ -414,7 +414,7 @@
 				}
 				catch (e:Error)
 				{
-					Alert.show(e.message);
+					//Alert.show(e.message);
 				}
 
 			}
@@ -440,7 +440,7 @@
 				}
 				catch (e:Error)
 				{
-					Alert.show(e.message);
+					//Alert.show(e.message);
 				}
 
 
@@ -455,7 +455,7 @@
 				}
 				catch (e:Error)
 				{
-					Alert.show(e.message);
+					//Alert.show(e.message);
 				}
 				
 				//playNetConnection=new NetConnection();
@@ -492,7 +492,7 @@
 				}
 				catch (e:Error)
 				{
-					Alert.show(e.message);
+					//Alert.show(e.message);
 				}
 
 				//Alert.show("private function setupStreams():void");
@@ -519,7 +519,7 @@
 				}
 				catch (e:Error)
 				{
-					Alert.show(e.message);
+					//Alert.show(e.message);
 				}
 				
 			}
@@ -554,6 +554,8 @@
 								if (microphone)
 								{
 									microphone.codec=SoundCodec.SPEEX;
+									microphone.setUseEchoSuppression(true);
+									microphone.setLoopBack(false);
 									publishStream.attachAudio(microphone);
 								}
 								publishStream.attachCamera(camera);
@@ -572,7 +574,7 @@
 				}
 				catch (e:Error)
 				{
-					Alert.show(e.message);
+					//Alert.show(e.message);
 				}
 			}
 
@@ -602,7 +604,10 @@
 								playStream2.play("stream2");
 								video2.attachNetStream(playStream2);
 							}
-	
+							if (camera)
+							{
+								ExternalInterface.call("addToQueue");
+							}
 							//microphone.rate = 11;
 	
 							//microphone.setSilenceLevel(0);
@@ -638,7 +643,7 @@
 				}
 				catch (e:Error)
 				{
-					Alert.show(e.message);
+					//Alert.show(e.message);
 				}
 			}
 
