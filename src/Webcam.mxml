@@ -52,10 +52,10 @@
 			import flash.display.BitmapData;
 			import flash.display.StageDisplayState;
 			import flash.net.GroupSpecifier;
-			import flash.text.Font;
-			import flash.utils.getTimer;
 			import flash.system.Security;
 			import flash.system.SecurityPanel;
+			import flash.text.Font;
+			import flash.utils.getTimer;
 			
 			import mx.collections.ArrayCollection;
 			import mx.controls.Alert;
@@ -172,6 +172,7 @@
 					ExternalInterface.addCallback("setWinner", setWinner);
 					ExternalInterface.addCallback("startBattle", startBattle);
 					ExternalInterface.addCallback("stopStream", stopVideo);
+					ExternalInterface.addCallback("setLabels", setLabels);
 					
 					//leave this as the last call, to notify JS that we're ready to rock-n-roll
 					ExternalInterface.call("asReady");
@@ -181,6 +182,15 @@
 				{
 					//Alert.show(e.message);
 				}
+			}
+			
+			private function setLabels(labels:String):void
+			{
+				var lab:Array = labels.split("|");
+				vote1Button.label = lab[0];
+				vote2Button.label = lab[0];
+				flagLabel1.htmlText = lab[1];
+				flagLabel2.htmlText = lab[1];
 			}
 
 			private function cameraStatusHandler(event:StatusEvent):void
@@ -211,7 +221,6 @@
 				timerbar2.start();
 				timerbar2.stop();
 				newBattle=true;
-				//updateStats(getStats());
 				
 				
 				//set filters on videos
@@ -226,11 +235,6 @@
 					
 			}
 
-			public function getStats():String
-			{
-				var stats:String=ExternalInterface.call("getStats");
-				return stats;
-			}
 
 			public function updateStats(data:String):void
 			{
@@ -743,7 +747,7 @@
 						 baseline="0"
 						 id="leftControls">
 					<mx:Button id="vote1Button"
-							   label="V O T E !"
+							   label=""
 							   styleName="voteButton"
 							   toolTip="Vote Up!"
 							   click="vote(1)"
@@ -820,7 +824,7 @@
 						 id="rightControls">
 					<mx:Button id="vote2Button"
 							   styleName="voteButton"
-							   label="V O T E !"
+							   label=""
 							   toolTip="Vote Up!"
 							   click="vote(2)"
 							   buttonMode="true"
