@@ -4,12 +4,15 @@
 				layout="vertical"
 				verticalAlign="middle"
 				styleName="app"
-				backgroundColor="#ffffff"
+				backgroundColor="#F3F3F3"
+				backgroundGradientColors="[0xF3F3F3, 0xF3F3F3]"
+				horizontalAlign="center"
 				xmlns:components="freeflowingcode.components.*"
 				applicationComplete="init(event)">
 	<mx:Style>
 		.app{
-			background-image: Embed("assets/images/bg.jpg");
+			/*background-image: Embed("assets/images/bg.jpg");*/
+			chromeColor: #F3F3F3;
 		}
 		.darkButton {
 			color:#fff;
@@ -32,8 +35,8 @@
 			
 		}
 		.vsText{
-			color: #fff;
-			fontSize: 40;
+			color: #3D3D3D;
+			fontSize: 50;
 			paddingRight:0;
 			margin:0;
 		}
@@ -146,7 +149,10 @@
 					flagLabel2.useHandCursor=true;
 					flagLabel2.mouseChildren=false;
 					flagLabel2.buttonMode=true;
-					
+					if (isLocal)
+					{
+						isNativeIPMulticast = true;
+					}
 					if (isNativeIPMulticast)
 					{
 						SERVER="rtmfp";
@@ -182,6 +188,23 @@
 				{
 					//Alert.show(e.message);
 				}
+			}
+			
+			public function get isLocal():Boolean
+			{	
+				var testFile:Boolean = (Application.application.url.split(":")[0] == "file");						
+				var testHost:Boolean = false;
+				
+				var reg:Array = ["localhost",
+					"rswfrodriguez.local"];						
+				for each(var server:String in reg)
+				{
+					var host:String = String(Application.application.url.split("/")[2]).split(":")[0];			
+					testHost = (host.toLowerCase() == server.toLowerCase());
+					if(testHost) return testHost;
+				}
+				
+				return (testFile);
 			}
 			
 			private function setLabels(labels:String):void
@@ -707,13 +730,11 @@
 	<mx:VBox id="mainContainer"
 			 width="100%"
 			 height="100%"
-			 horizontalCenter="0"
 			 horizontalAlign="center">
 
 
 		<mx:HBox width="100%"
 				 height="100%"
-				 horizontalCenter="0"
 				 horizontalAlign="center">
 
 
@@ -779,7 +800,7 @@
 			<mx:VBox id="midContainer"
 					 height="100%"
 					 horizontalScrollPolicy="off"
-					 width="50"
+					 width="20%"
 					 verticalAlign="middle"
 					 horizontalAlign="center">
 				<mx:Label text="vs"
